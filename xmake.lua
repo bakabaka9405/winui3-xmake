@@ -4,11 +4,11 @@ set_allowedplats("windows")
 set_allowedarchs("x64")
 
 local PACKAGE_VERSIONS = {
-    ["Microsoft.Windows.CppWinRT"] = "2.0.230706.1",
-    ["Microsoft.Windows.ImplementationLibrary"] = "1.0.220914.1",
-    ["Microsoft.Windows.SDK.BuildTools"] = "10.0.22621.756",
-    ["Microsoft.WindowsAppSDK"] = "1.6.240923002",
-    ["Microsoft.Web.WebView2"] = "1.0.2792.45"
+    ["Microsoft.Windows.CppWinRT"] = "2.0.250303.1",
+    ["Microsoft.Windows.ImplementationLibrary"] = "1.0.260126.7",
+    ["Microsoft.Windows.SDK.BuildTools"] = "10.0.28000.1721",
+    ["Microsoft.WindowsAppSDK"] = "1.7.260224002",
+    ["Microsoft.Web.WebView2"] = "1.0.3856.49"
 }
 
 local function _fail(message)
@@ -158,6 +158,20 @@ local function _appsdk_winmd_path(appsdk_lib, uap_dirs, name)
     return _pick_first_existing_or_default(candidates)
 end
 
+local function _append_args(args, flag, values)
+    for _, p in ipairs(values or {}) do
+        table.insert(args, flag)
+        table.insert(args, p)
+    end
+end
+
+local function _make_cppwinrt_args(out_dir, inputs, refs)
+    local args = {"-out", out_dir, "-optimize", "-prefix", "-overwrite"}
+    _append_args(args, "-in", inputs)
+    _append_args(args, "-ref", refs)
+    return args
+end
+
 local function _target_context()
     local project_dir = os.projectdir()
     local packages_config = path.join(project_dir, "packages.config")
@@ -221,8 +235,7 @@ local function _target_context()
         bootstrap_dll = path.join(appsdk_path, "runtimes", "win-x64", "native", "Microsoft.WindowsAppRuntime.Bootstrap.dll"),
         platform_winmds = platform_refs,
         webview2_winmd = webview2_winmd,
-        appsdk_winmds = appsdk_winmds,
-        ref_winmds = platform_refs
+        appsdk_winmds = appsdk_winmds
     }
 end
 
@@ -241,10 +254,15 @@ target("test")
 
         local ctx = _target_context()
         target:data_set("winui3_ctx", ctx)
-        target:add("includedirs", ctx.generated_dir)
-        target:add("includedirs", path.join(ctx.include_dir, "cppwinrt"))
-        target:add("includedirs", ctx.implementation_include)
-        target:add("includedirs", ctx.appsdk_include)
+        local system_include_dirs = {
+            ctx.generated_dir,
+            path.join(ctx.include_dir, "cppwinrt"),
+            ctx.implementation_include,
+            ctx.appsdk_include
+        }
+        for _, dir in ipairs(system_include_dirs) do
+            target:add("sysincludedirs", dir)
+        end
         target:add("linkdirs", ctx.appsdk_libdir)
         target:add("links", "Microsoft.WindowsAppRuntime.Bootstrap")
     end)
@@ -271,31 +289,15 @@ target("test")
             })
         end
 
-        local args_platform = {"-out", ctx.generated_dir, "-optimize", "-prefix", "-overwrite"}
-        for _, p in ipairs(ctx.platform_winmds) do
-            table.insert(args_platform, "-in")
-            table.insert(args_platform, p)
-        end
+        local args_platform = _make_cppwinrt_args(ctx.generated_dir, ctx.platform_winmds)
+        local args_webview2 = _make_cppwinrt_args(ctx.generated_dir, {ctx.webview2_winmd}, ctx.platform_winmds)
 
-        local args_webview2 = {"-out", ctx.generated_dir, "-optimize", "-prefix", "-overwrite"}
-        table.insert(args_webview2, "-in")
-        table.insert(args_webview2, ctx.webview2_winmd)
+        local appsdk_refs = {}
         for _, p in ipairs(ctx.platform_winmds) do
-            table.insert(args_webview2, "-ref")
-            table.insert(args_webview2, p)
+            table.insert(appsdk_refs, p)
         end
-
-        local args_appsdk = {"-out", ctx.generated_dir, "-optimize", "-prefix", "-overwrite"}
-        for _, p in ipairs(ctx.appsdk_winmds) do
-            table.insert(args_appsdk, "-in")
-            table.insert(args_appsdk, p)
-        end
-        for _, p in ipairs(ctx.platform_winmds) do
-            table.insert(args_appsdk, "-ref")
-            table.insert(args_appsdk, p)
-        end
-        table.insert(args_appsdk, "-ref")
-        table.insert(args_appsdk, ctx.webview2_winmd)
+        table.insert(appsdk_refs, ctx.webview2_winmd)
+        local args_appsdk = _make_cppwinrt_args(ctx.generated_dir, ctx.appsdk_winmds, appsdk_refs)
 
         batchcmds:show_progress(opt.progress, "${color.build.object}generating.cppwinrt.platform %s", target:name())
         batchcmds:mkdir(ctx.generated_dir)

@@ -1,93 +1,133 @@
-#include <windows.h>
-#include <unknwn.h>
-#include <restrictederrorinfo.h>
+#include <format>
 #include <hstring.h>
 #include <iomanip>
+#include <restrictederrorinfo.h>
 #include <sstream>
-#include <format>
+#include <unknwn.h>
+#include <windows.h>
 
 #undef GetCurrentTime
 
 #include <MddBootstrap.h>
 #include <WindowsAppSDK-VersionInfo.h>
 
-#include <winrt/base.h>
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Microsoft.UI.Xaml.h>
-#include <winrt/Microsoft.UI.Xaml.Controls.h>
+#include <winrt/Microsoft.UI.Composition.SystemBackdrops.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
+#include <winrt/Microsoft.UI.Xaml.Controls.h>
+#include <winrt/Microsoft.UI.Xaml.Markup.h>
+#include <winrt/Microsoft.UI.Xaml.Media.h>
+#include <winrt/Microsoft.UI.Xaml.XamlTypeInfo.h>
+#include <winrt/Microsoft.UI.Xaml.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/base.h>
 
-namespace mux = winrt::Microsoft::UI::Xaml;
-namespace muxc = winrt::Microsoft::UI::Xaml::Controls;
+namespace ux = winrt::Microsoft::UI::Xaml;
+namespace uxc = winrt::Microsoft::UI::Xaml::Controls;
+namespace uxd = winrt::Microsoft::UI::Xaml::Media;
+namespace uxx = winrt::Microsoft::UI::Xaml::XamlTypeInfo;
+namespace uxm = winrt::Microsoft::UI::Xaml::Markup;
+namespace uxi = winrt::Microsoft::UI::Xaml::Interop;
+namespace wuxi = winrt::Windows::UI::Xaml::Interop;
 
-struct bootstrap_winappsdk {
-    bootstrap_winappsdk()
-    {
-        winrt::check_hresult(MddBootstrapInitialize2(
-            WINDOWSAPPSDK_RELEASE_MAJORMINOR,
-            WINDOWSAPPSDK_RELEASE_VERSION_TAG_W,
-            PACKAGE_VERSION{},
-            static_cast<MddBootstrapInitializeOptions>(
-                MddBootstrapInitializeOptions_OnNoMatch_ShowUI |
-                MddBootstrapInitializeOptions_OnError_DebugBreak_IfDebuggerAttached)));
-    }
+namespace uc = winrt::Microsoft::UI::Composition;
+namespace ucs = winrt::Microsoft::UI::Composition::SystemBackdrops;
 
-    ~bootstrap_winappsdk()
-    {
-        MddBootstrapShutdown();
-    }
+static void EnableHighDpiSupport() {
+	if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+		return;
+	}
+	SetProcessDPIAware();
+}
+
+struct WinAppSdkBootstrap {
+	WinAppSdkBootstrap() {
+		winrt::check_hresult(MddBootstrapInitialize2(
+			WINDOWSAPPSDK_RELEASE_MAJORMINOR,
+			WINDOWSAPPSDK_RELEASE_VERSION_TAG_W,
+			PACKAGE_VERSION{},
+			static_cast<MddBootstrapInitializeOptions>(
+				MddBootstrapInitializeOptions_OnNoMatch_ShowUI | MddBootstrapInitializeOptions_OnError_DebugBreak_IfDebuggerAttached)));
+	}
+
+	~WinAppSdkBootstrap() {
+		MddBootstrapShutdown();
+	}
 };
 
-struct MainWindow : mux::WindowT<MainWindow> {
-    MainWindow()
-    {
-        auto panel = muxc::StackPanel();
-        panel.HorizontalAlignment(mux::HorizontalAlignment::Center);
-        panel.VerticalAlignment(mux::VerticalAlignment::Center);
+struct MainWindow : ux::WindowT<MainWindow> {
+	MainWindow() {
+		auto panel = uxc::StackPanel();
+		panel.HorizontalAlignment(ux::HorizontalAlignment::Center);
+		panel.VerticalAlignment(ux::VerticalAlignment::Center);
 
-        m_button = muxc::Button();
-        m_button.Content(winrt::box_value(L"Click me"));
-        m_button.Click({this, &MainWindow::OnClick});
+		m_textBlock = uxc::TextBlock();
+		m_textBlock.Text(L"Hello, xmake + WinUI3!");
+		m_textBlock.HorizontalAlignment(ux::HorizontalAlignment::Center);
+		m_textBlock.FontSize(24);
 
-        panel.Children().Append(m_button);
-        Content(panel);
-        Title(L"xmake + WinUI3 minimal demo");
-    }
+		m_button = uxc::Button();
+		m_button.Content(winrt::box_value(L"Click me"));
+		m_button.Click({ this, &MainWindow::OnClick });
+		m_button.HorizontalAlignment(ux::HorizontalAlignment::Center);
+		m_button.Margin(ux::ThicknessHelper::FromUniformLength(20));
 
-    void OnClick(winrt::Windows::Foundation::IInspectable const&, mux::RoutedEventArgs const&)
-    {
-        m_button.Content(winrt::box_value(L"Hello WinUI3"));
-    }
+		panel.Children().Append(m_textBlock);
+		panel.Children().Append(m_button);
+		Content(panel);
 
-    muxc::Button m_button{nullptr};
+		auto mica = uxd::MicaBackdrop();
+		mica.Kind(ucs::MicaKind::BaseAlt);
+		SystemBackdrop(mica);
+
+		Title(L"xmake + WinUI3 minimal demo");
+	}
+
+	void OnClick(winrt::Windows::Foundation::IInspectable const&,
+				 ux::RoutedEventArgs const&) {
+		m_button.Content(winrt::box_value(L"Hello WinUI3"));
+	}
+
+	uxc::TextBlock m_textBlock{ nullptr };
+	uxc::Button m_button{ nullptr };
 };
 
-struct App : mux::ApplicationT<App> {
-    void OnLaunched(mux::LaunchActivatedEventArgs const&)
-    {
-        m_window = winrt::make<MainWindow>();
-        m_window.Activate();
-    }
+struct App : ux::ApplicationT<App, uxm::IXamlMetadataProvider> {
+	void OnLaunched(ux::LaunchActivatedEventArgs const&) {
+		Resources().MergedDictionaries().Append(uxc::XamlControlsResources());
+		m_window = winrt::make<MainWindow>();
+		m_window.Activate();
+	}
 
-    mux::Window m_window{nullptr};
+	uxm::IXamlType GetXamlType(wuxi::TypeName const& type) {
+		return provider.GetXamlType(type);
+	}
+	uxm::IXamlType GetXamlType(winrt::hstring const& fullname) {
+		return provider.GetXamlType(fullname);
+	}
+	winrt::com_array<uxm::XmlnsDefinition> GetXmlnsDefinitions() {
+		return provider.GetXmlnsDefinitions();
+	}
+	ux::Window m_window{ nullptr };
+	ux::XamlTypeInfo::XamlControlsXamlMetaDataProvider provider;
 };
 
-int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
-{
-    try {
-        winrt::init_apartment(winrt::apartment_type::single_threaded);
-        bootstrap_winappsdk bootstrap;
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
+	try {
+		EnableHighDpiSupport();
+		winrt::init_apartment(winrt::apartment_type::single_threaded);
+		WinAppSdkBootstrap bootstrap;
 
-        mux::Application::Start([](auto&&) { winrt::make<App>(); });
+		ux::Application::Start([](auto&&) { winrt::make<App>(); });
 
-        winrt::uninit_apartment();
-        return 0;
-    } catch (winrt::hresult_error const& ex) {
-        auto details=std::format(L"HRESULT: 0x{0:08X}\n{1}\n\n请先安装 Windows App Runtime 1.6：\nwinget install --id Microsoft.WindowsAppRuntime.1.6 --accept-package-agreements --accept-source-agreements",
-            static_cast<uint32_t>(ex.code()),
-            ex.message().c_str());
-        MessageBoxW(nullptr, details.c_str(), L"WinUI3 demo failed", MB_OK | MB_ICONERROR);
-        return 1;
-    }
+		winrt::uninit_apartment();
+		return 0;
+	}
+	catch (winrt::hresult_error const& ex) {
+		auto details = std::format(L"HRESULT: 0x{0:08X}\n{1}\n\n请先安装 Windows App Runtime 1.7：\nwinget install --id Microsoft.WindowsAppRuntime.1.7 --accept-package-agreements --accept-source-agreements",
+								   static_cast<uint32_t>(ex.code()),
+								   ex.message().c_str());
+		MessageBoxW(nullptr, details.c_str(), L"WinUI3 demo failed", MB_OK | MB_ICONERROR);
+		return 1;
+	}
 }

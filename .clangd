@@ -164,13 +164,13 @@ Diagnostics:
 CompileFlags:
   Add:
     [
-      -xc++,
-      -Wall,
-      -Wextra,
-      -Wno-unused-variable,
+      # -xc++,
+      # -Wall,
+      # -Wextra,
+      # -Wno-unused-variable,
       -Wno-c++98-compat,
       -std:c++20,
-      -DMR_CLANGD,
+      # -DMR_CLANGD,
     ]
   Compiler: 'C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe'
 
