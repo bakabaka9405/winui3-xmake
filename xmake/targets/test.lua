@@ -1,0 +1,8 @@
+target("test")
+    set_kind("binary")
+    add_files(path.join(os.projectdir(), "src", "*.cpp"))
+    add_defines("UNICODE", "_UNICODE", "DISABLE_XAML_GENERATED_MAIN")
+    add_cxflags("/EHsc", "/Zc:__cplusplus", {force = true})
+    add_ldflags("/subsystem:windows", {force = true})
+    add_syslinks("ole32", "runtimeobject", "windowsapp", "user32")
+    add_rules("winui3.app")

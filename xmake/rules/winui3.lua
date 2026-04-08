@@ -1,0 +1,15 @@
+rule("winui3.app")
+    on_load(function(target)
+        local Build = import("xmake.modules.winui3.build", {rootdir = os.projectdir()})
+        Build.on_load(target)
+    end)
+
+    before_buildcmd(function(target, batchcmds, opt)
+        local Build = import("xmake.modules.winui3.build", {rootdir = os.projectdir()})
+        Build.before_buildcmd(target, batchcmds, opt)
+    end)
+
+    after_buildcmd(function(target, batchcmds)
+        local Build = import("xmake.modules.winui3.build", {rootdir = os.projectdir()})
+        Build.after_buildcmd(target, batchcmds)
+    end)
