@@ -1,7 +1,6 @@
 #include "MainWindow.xaml.h"
 #include "pch.h"
 
-#include <microsoft.ui.xaml.window.h>
 #include <winrt/Microsoft.UI.Composition.SystemBackdrops.h>
 
 #if __has_include("MainWindow.g.cpp")
@@ -16,14 +15,7 @@ MainWindow::MainWindow() {
 	mica.Kind(muic::SystemBackdrops::MicaKind::BaseAlt);
 	SystemBackdrop(mica);
 
-	auto window = try_as<IWindowNative>();
-	if (window) {
-		HWND hwnd = nullptr;
-		window->get_WindowHandle(&hwnd);
-		auto id = mui::GetWindowIdFromWindow(hwnd);
-		auto appWindow = muiw::AppWindow::GetFromWindowId(id);
-		appWindow.Resize({ 800, 600 });
-	}
+	this->AppWindow().Resize({ 800, 600 });
 }
 
 void MainWindow::myButton_Click(
