@@ -11,9 +11,12 @@ namespace winrt::xmake_demo::implementation {
 MainWindow::MainWindow() {
 	InitializeComponent();
 
-	auto mica = mux::Media::MicaBackdrop();
-	mica.Kind(muic::SystemBackdrops::MicaKind::BaseAlt);
-	SystemBackdrop(mica);
+	// auto acrylic = mux::Media::DesktopAcrylicBackdrop();
+	// SystemBackdrop(acrylic);
+
+	// auto mica = mux::Media::MicaBackdrop();
+	// mica.Kind(muic::SystemBackdrops::MicaKind::BaseAlt);
+	// SystemBackdrop(mica);
 
 	this->AppWindow().Resize({ 800, 600 });
 }
