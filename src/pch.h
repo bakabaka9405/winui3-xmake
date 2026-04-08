@@ -24,3 +24,12 @@
 #include <winrt/Microsoft.UI.Windowing.h>
 
 #include <wil/cppwinrt_helpers.h>
+
+namespace wf = winrt::Windows::Foundation;
+namespace wfc = winrt::Windows::Foundation::Collections;
+namespace mux = winrt::Microsoft::UI::Xaml;
+namespace muxc = winrt::Microsoft::UI::Xaml::Controls;
+namespace muxp = winrt::Microsoft::UI::Xaml::Controls::Primitives;
+namespace mui = winrt::Microsoft::UI;
+namespace muic = winrt::Microsoft::UI::Composition;
+namespace muiw = winrt::Microsoft::UI::Windowing;

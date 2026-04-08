@@ -49,7 +49,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 	winrt::init_apartment(winrt::apartment_type::single_threaded);
 	WinAppSdkBootstrap bootstrap;
 
-	winrt::Microsoft::UI::Xaml::Application::Start([](auto&&) {
+	mux::Application::Start([](auto&&) {
 		winrt::make<winrt::xmake_demo::implementation::App>();
 	});
 
