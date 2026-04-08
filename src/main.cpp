@@ -21,14 +21,9 @@
 #include "XamlTypeInfo.g.cpp"
 #endif
 
-static void EnableHighDpiSupport() {
-	if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-		return;
-	}
-	SetProcessDPIAware();
-}
-
-struct WinAppSdkBootstrap {
+// WinAppSDK bootstrap - static initializer
+// The XAML-generated code provides the wWinMain entry point
+static struct WinAppSdkBootstrap {
 	WinAppSdkBootstrap() {
 		winrt::check_hresult(MddBootstrapInitialize2(
 			WINDOWSAPPSDK_RELEASE_MAJORMINOR,
@@ -41,18 +36,4 @@ struct WinAppSdkBootstrap {
 	~WinAppSdkBootstrap() {
 		MddBootstrapShutdown();
 	}
-};
-
-int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
-	EnableHighDpiSupport();
-
-	winrt::init_apartment(winrt::apartment_type::single_threaded);
-	WinAppSdkBootstrap bootstrap;
-
-	mux::Application::Start([](auto&&) {
-		winrt::make<winrt::xmake_demo::implementation::App>();
-	});
-
-	winrt::uninit_apartment();
-	return 0;
-}
+} g_bootstrap;

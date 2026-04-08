@@ -1,8 +1,9 @@
-# Xmake cache
-.xmake/
 build/
-.vscode/
+.xmake/
+.sisyphus/
+packages/
+*.user
+*.exe
+*.pdb
+*.ilk
 references/
-
-# MacOS Cache
-.DS_Store
