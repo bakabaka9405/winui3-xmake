@@ -1,0 +1,65 @@
+# winui3_xmake
+
+一个基于 xmake 的 WinUI 3 + C++/WinRT 示例项目。
+
+这个仓库展示了如何不依赖 Visual Studio 的 .sln/.vcxproj，直接通过 xmake 脚本完成 WinUI 3 应用的完整构建链：NuGet 还原、cppwinrt 投影生成、MIDL/WinMD 生成与合并、XAML 编译、PRI 资源打包，以及最终运行。
+
+## 项目功能
+
+- WinUI 3 桌面应用最小可运行示例（Hello World + 点击按钮改文案）。
+- 启用 Windows App SDK Bootstrap（手写 `wWinMain`，避免 XAML 自动入口导致初始化缺失）。
+- 自动启用高 DPI（优先 `PER_MONITOR_AWARE_V2`，回退 `SetProcessDPIAware`）。
+- 主窗口启用 Mica 背景（`MicaKind::BaseAlt`）。
+- xmake 规则自动完成 WinUI 3 所需代码生成与资源打包。
+
+## 技术栈与依赖
+
+- C++20
+- xmake（Windows 平台、x64）
+- WinUI 3 / Windows App SDK
+- C++/WinRT
+- WebView2 元数据（用于投影输入）
+
+NuGet 依赖版本在 `packages.config` 中定义，首次构建会自动还原到 `.xmake/nuget`。
+
+## 目录说明
+
+- `src/`：应用源码（`main.cpp`、`App.xaml*`、`MainWindow.xaml*`、IDL 等）
+- `xmake/rules/`：xmake 规则入口
+- `xmake/modules/winui3/`：WinUI 3 构建流程脚本（restore/cppwinrt/winmd/xaml/makepri）
+- `.xmake/generated/`：构建时生成的中间代码与资源
+- `build/`：编译输出目录
+
+## 环境要求
+
+请确保本机具备以下环境：
+
+1. Windows 10/11 x64
+2. Visual Studio 2022+ 或 Build Tools（包含 MSVC C++ 工具链与 Windows SDK）
+3. xmake（建议 3.x）
+4. `nuget.exe` 可在 PATH 中找到（仅当 `.xmake/nuget` 缺依赖时必需）
+
+## 自动化构建流程（由规则完成）
+
+`winui3.app` 规则会在构建期自动执行以下步骤：
+
+1. NuGet 还原（按 `packages.config`）。
+2. 生成基础投影（platform + WebView2 + AppSDK）。
+3. 通过 MIDL 生成组件 WinMD，并用 mdmerge 合并。
+4. 基于合并后的 WinMD 生成组件投影代码。
+5. 调用 XamlCompiler 两阶段编译 XAML。
+6. 调用 makepri 生成 `resources.pri`，并复制到输出目录。
+
+## 命名空间修改指南
+
+项目生成链使用的根命名空间在 `xmake/modules/winui3/context.lua` 顶部常量 `ROOT_NAMESPACE` 控制。
+
+修改命名空间时，建议同步检查以下文件中的手写命名空间和 `x:Class`：
+
+- `src/MainWindow.idl`
+- `src/XamlMetaDataProvider.idl`
+- `src/App.xaml`
+- `src/MainWindow.xaml`
+- `src/*.xaml.h`
+- `src/*.xaml.cpp`
+- `src/main.cpp`
