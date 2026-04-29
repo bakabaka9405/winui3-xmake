@@ -7,3 +7,6 @@ packages/
 *.pdb
 *.ilk
 references/
+.vscode/
+.cache/
+__pycache__/
