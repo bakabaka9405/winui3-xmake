@@ -21,6 +21,10 @@ FEATURE_CONTROL_FLAGS = (
     "EnableWin32Codegen"
 )
 
+# ── 输出控制 ───────────────────────────────────────────────────────
+# 模块级详细输出开关：通过 --verbose / -v 参数设置
+_verbose: bool = False
+
 def _discover_winsdk_root() -> Path:
     """Discover Windows SDK root from environment or registry."""
     env = os.environ.get("WindowsSdkDir")
@@ -52,10 +56,10 @@ def _discover_vc_bin() -> Path:
         return Path(vctools) / "bin" / "HostX64" / "x64"
     # Try common locations
     candidates = [
+        Path(r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC"),
         Path(r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC"),
         Path(r"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC"),
         Path(r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"),
-        Path(r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC"),
     ]
     for base in candidates:
         if base.is_dir():
@@ -93,6 +97,86 @@ APP_SDK_WINMDS_IXP = [
     "Microsoft.Graphics",
     "Microsoft.UI",
 ]
+
+
+# ── 文件发现基础设施 ───────────────────────────────────────────────
+# 以下函数用于自动发现 src/ 中的源文件，替代硬编码的文件列表。
+# 支持任意数量的 .xaml、.idl、.winmd 文件，无需修改构建脚本。
+
+# 按约定：应用程序入口 XAML 文件命名为 App.xaml
+_APP_XAML_NAME: str = "App.xaml"
+
+
+def discover_xaml_files(src_dir: Path) -> list[Path]:
+    """递归发现 src_dir 及其子目录中所有 .xaml 文件，按路径排序。"""
+    return sorted(src_dir.rglob("*.xaml"), key=lambda p: str(p))
+
+
+def discover_idl_files(src_dir: Path) -> list[Path]:
+    """递归发现 src_dir 及其子目录中所有 .idl 文件，按路径排序。"""
+    return sorted(src_dir.rglob("*.idl"), key=lambda p: str(p))
+
+
+def discover_winmd_files(winmd_dir: Path) -> list[Path]:
+    """递归发现 winmd_dir 及其子目录中所有 .winmd 文件。若目录不存在则返回空列表。"""
+    if not winmd_dir.is_dir():
+        return []
+    return sorted(winmd_dir.rglob("*.winmd"), key=lambda p: str(p))
+
+
+def xaml_to_header(xaml_path: Path) -> Path:
+    """由 .xaml 路径推导对应的 .h 头文件路径（例如 App.xaml → App.xaml.h）。"""
+    return Path(os.fspath(xaml_path) + ".h")
+
+
+def classify_xaml(xaml_files: list[Path], src_dir: Path) -> tuple[list[Path], list[Path]]:
+    """将 XAML 文件分为 (应用程序入口, 页面) 两组。
+
+    仅 src_dir 根目录下的 App.xaml 被视为应用程序入口；
+    子目录中的 App.xaml 按普通页面处理。
+    """
+    app_candidate = src_dir / _APP_XAML_NAME
+    apps = [p for p in xaml_files if p == app_candidate]
+    pages = [p for p in xaml_files if p != app_candidate]
+    return apps, pages
+
+
+def clean_stale_files(directory: Path, pattern: str, *, required: bool = False) -> None:
+    """清理目录中匹配 pattern 的陈旧生成文件，确保增量构建不会使用旧产物。
+
+    Args:
+        directory: 目标目录。
+        pattern: glob 匹配模式（例如 "*.winmd"、"**/*.xbf"）。
+        required: 若为 True，清理失败时将抛出 BuildError。
+    """
+    if not directory.is_dir():
+        return
+    for stale in directory.glob(pattern):
+        try:
+            stale.unlink()
+        except OSError as exc:
+            msg = f"failed to remove stale file {native_path(stale)}: {exc}"
+            if required:
+                raise BuildError(msg) from exc
+            print(f"mwarning: {msg}")
+
+
+def idl_to_winmd_path(idl_path: Path, base_dir: Path, out_dir: Path) -> Path:
+    """由 IDL 路径生成 WinMD 输出路径，保留相对于 base_dir 的目录结构以避免命名冲突。
+
+    若 IDL 不在 base_dir 下（例如自动生成的 IDL），则直接放入 out_dir 根目录。
+
+    例如:
+        src/MainWindow.idl       -> winmd_unmerged/MainWindow.winmd
+        src/Views/Foo.idl        -> winmd_unmerged/Views/Foo.winmd
+        generated/XamlMetaDataProvider.idl -> winmd_unmerged/XamlMetaDataProvider.winmd
+    """
+    try:
+        rel = idl_path.relative_to(base_dir)
+        return out_dir / rel.parent / f"{idl_path.stem}.winmd"
+    except ValueError:
+        # IDL 不在源码目录下（例如自动生成的），直接放入 out_dir 根目录
+        return out_dir / f"{idl_path.stem}.winmd"
 
 
 class BuildError(RuntimeError):
@@ -133,14 +217,117 @@ def print_phase(title: str) -> None:
     print(f"\n=== {title} ===", flush=True)
 
 
-def run_command(command: list[str], env: dict[str, str] | None = None) -> None:
-    print("  " + subprocess.list2cmdline(command), flush=True)
-    try:
-        subprocess.run(command, check=True, env=env)
-    except subprocess.CalledProcessError as exc:
-        print(f"error: command failed with exit code {exc.returncode}:", file=sys.stderr)
-        print(subprocess.list2cmdline(command), file=sys.stderr)
-        raise
+def _filter_subprocess_output(stdout: str, stderr: str) -> str | None:
+    """过滤冗长的子进程输出，仅保留具有诊断价值的行。
+
+    保留：
+        - 包含 error/warning/fail 关键词的行
+        - 包含文件路径和行列号的行（例如 MainWindow.xaml(12,5)）
+        - 具有上下文价值的非空行
+
+    剥离：
+        - JSON 片段（以 {、} 开头或纯键值对形式的行）
+        - 堆栈跟踪行（以 "   at " 开头或以 "---" 分隔）
+        - ReferenceAssembly/XamlPage/XamlApplication/ClIncludeFile 等元数据行
+        - 纯空白行
+    """
+    combined = (stderr or "") + "\n" + (stdout or "")
+    relevant: list[str] = []
+
+    for raw_line in combined.splitlines():
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+
+        # 跳过堆栈跟踪行
+        if stripped.startswith("at ") or stripped.startswith("---"):
+            continue
+
+        # 跳过纯 JSON 结构行（以 {、} 开头 或 纯键值对形式）
+        first_char = stripped[0]
+        if first_char in ("{", "}"):
+            continue
+        if first_char == '"' and '":' in stripped[:60]:
+            continue
+
+        # 跳过 XamlCompiler 的元数据回显行
+        if stripped.startswith(("ReferenceAssembly:", "ReferenceAssemblyPath:",
+                                "XamlPage:", "XamlApplication:", "ClIncludeFile:")):
+            continue
+
+        # 跳过冗长的路径输出（以特定前缀开头的非诊断行）
+        if stripped.startswith("SavedStateFile:") or stripped.startswith("OutputPath:"):
+            continue
+
+        relevant.append(raw_line)
+
+    # 限制输出行数，避免淹没终端
+    max_lines = 80
+    if len(relevant) > max_lines:
+        relevant = relevant[:max_lines]
+        relevant.append(
+            f"... (输出已截断，显示前 {max_lines} 行。使用 --verbose 查看完整输出)"
+        )
+
+    return "\n".join(relevant) if relevant else None
+
+
+def run_command(
+    command: list[str],
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """运行子进程命令，捕获并智能过滤输出。
+
+    成功时：显示命令名和简要 [OK] 状态，隐藏详细工具输出。
+    失败时：过滤冗余行，仅显示关键诊断信息，随后抛出 CalledProcessError。
+    --verbose 模式下恢复完整的未过滤输出。
+
+    Args:
+        command: 命令及参数列表。
+        env: 可选的环境变量字典。
+
+    Returns:
+        CompletedProcess 实例（含 stdout/stderr 属性，供调用方使用）。
+
+    Raises:
+        subprocess.CalledProcessError: 命令以非零退出码退出时。
+    """
+    cmdline = subprocess.list2cmdline(command)
+
+    # 捕获子进程输出阶段
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+
+    # 判断成功/失败并选择输出策略
+    if result.returncode == 0:
+        # 成功：压缩为一行简洁提示
+        print(f"  [OK] {cmdline[:80]}{'...' if len(cmdline) > 80 else ''}", flush=True)
+        return result
+
+    # 失败：根据模式输出诊断信息
+    if _verbose:
+        # 详细模式：完整输出
+        if result.stdout and result.stdout.strip():
+            print(result.stdout, flush=True)
+        if result.stderr and result.stderr.strip():
+            print(result.stderr, file=sys.stderr, flush=True)
+    else:
+        # 紧凑模式：过滤后输出
+        filtered = _filter_subprocess_output(result.stdout, result.stderr)
+        if filtered:
+            print(filtered, flush=True)
+
+    print(f"error: command failed with exit code {result.returncode}:", file=sys.stderr)
+    print(cmdline, file=sys.stderr)
+    raise subprocess.CalledProcessError(
+        result.returncode, command, output=result.stdout, stderr=result.stderr
+    )
 
 
 def discover_winsdk_version(winsdk_root: Path) -> str:
@@ -308,16 +495,27 @@ def build_xaml_json(
     is_pass1: bool,
 ) -> dict[str, Any]:
     src_dir = project_dir / "src"
-    app_xaml = src_dir / "App.xaml"
-    main_window_xaml = src_dir / "MainWindow.xaml"
-    app_header = src_dir / "App.xaml.h"
-    main_window_header = src_dir / "MainWindow.xaml.h"
+
+    # 自动发现所有 .xaml 文件，按命名约定分类
+    xaml_files = discover_xaml_files(src_dir)
+    if not xaml_files:
+        raise BuildError(f"no .xaml files found in {native_path(src_dir)}")
+    xaml_apps, xaml_pages = classify_xaml(xaml_files, src_dir)
+
+    # 由 .xaml 文件推导对应的 .h 头文件列表
+    header_files: list[tuple[Path, Path]] = []
+    for xf in xaml_files:
+        hf = xaml_to_header(xf)
+        if hf.is_file():
+            header_files.append((hf, xf))
+        else:
+            print(f" mwarning: no header file found for {xf.name} (expected {hf.name}), skipping ClIncludeFiles entry")
 
     data: dict[str, Any] = {
         "SavedStateFile": native_path(generated_dir / "XamlCompilerState.xml"),
         "IsPass1": is_pass1,
         "Language": "CppWinRT",
-        "ProjectPath": native_path(absolute_path(app_xaml)),
+        "ProjectPath": native_path(absolute_path(xaml_apps[0] if xaml_apps else xaml_files[0])),
         "LanguageSourceExtension": ".cpp",
         "OutputPath": native_path(generated_dir),
         "RootNamespace": ROOT_NAMESPACE,
@@ -326,11 +524,10 @@ def build_xaml_json(
         "ReferenceAssemblies": [msbuild_item(path) for path in ref_winmds],
         "ReferenceAssemblyPaths": [],
         "TargetPlatformMinVersion": winsdk_version,
-        "XamlPages": [msbuild_item(main_window_xaml)],
-        "XamlApplications": [msbuild_item(app_xaml)],
+        "XamlPages": [msbuild_item(p) for p in xaml_pages],
+        "XamlApplications": [msbuild_item(p) for p in xaml_apps],
         "ClIncludeFiles": [
-            msbuild_item(app_header, dependent_upon=app_xaml),
-            msbuild_item(main_window_header, dependent_upon=main_window_xaml),
+            msbuild_item(hf, dependent_upon=xf) for hf, xf in header_files
         ],
     }
 
@@ -399,6 +596,9 @@ def run_midl(
         native_path(sdk_include_dir / "shared"),
         "/I",
         native_path(sdk_include_dir / "winrt"),
+        # 支持 IDL 相对 import（例如 import "Common.idl"）
+        "/I",
+        native_path(idl.parent),
     ]
     for ref_winmd in ref_winmds:
         command.extend(["/reference", native_path(ref_winmd)])
@@ -414,11 +614,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=Path(__file__).resolve().parent.parent,
         help="Project root directory. Defaults to this script's parent directory.",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable verbose output: show unfiltered tool output for debugging.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    global _verbose
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    _verbose = args.verbose
 
     try:
         project_dir = absolute_path(args.project_dir)
@@ -451,16 +659,14 @@ def main(argv: list[str] | None = None) -> int:
             root / "microsoft.web.webview2" / "1.0.3912.50" / "lib" / "Microsoft.Web.WebView2.Core.winmd"
         )
 
-        require_dir(project_dir / "src", "project src directory")
-        for source in [
-            project_dir / "src" / "App.xaml",
-            project_dir / "src" / "App.xaml.h",
-            project_dir / "src" / "MainWindow.xaml",
-            project_dir / "src" / "MainWindow.xaml.h",
-            project_dir / "src" / "MainWindow.idl",
-            project_dir / "src" / "XamlMetaDataProvider.idl",
-        ]:
-            require_file(source, "project source file")
+        src_dir = require_dir(project_dir / "src", "project src directory")
+
+        # 动态发现用户编写的源文件，替代硬编码文件列表
+        xaml_files = discover_xaml_files(src_dir)
+        if not xaml_files:
+            raise BuildError(f"no .xaml files found in {native_path(src_dir)}")
+
+        idl_files = discover_idl_files(src_dir)
 
         require_file(cppwinrt_exe, "cppwinrt.exe")
         require_file(midl_exe, "midl.exe")
@@ -516,40 +722,45 @@ def main(argv: list[str] | None = None) -> int:
         run_command(phase1c)
 
         print_phase("[2/8] Compile IDL to WinMD")
+
+        # 清理上次构建的陈旧 WinMD 文件（递归，因 IDL 可能位于子目录）
+        clean_stale_files(winmd_unmerged_dir, "**/*.winmd", required=True)
+
         midl_env = path_env_with_vc(vc_bin_path())
-        run_midl(
-            midl_exe=midl_exe,
-            idl=project_dir / "src" / "XamlMetaDataProvider.idl",
-            out_winmd=winmd_unmerged_dir / "XamlMetaDataProvider.winmd",
-            foundation_meta=foundation_meta,
-            sdk_include_dir=sdk_include_dir,
-            ref_winmds=ref_winmds,
-            env=midl_env,
-        )
-        run_midl(
-            midl_exe=midl_exe,
-            idl=project_dir / "src" / "MainWindow.idl",
-            out_winmd=winmd_unmerged_dir / "MainWindow.winmd",
-            foundation_meta=foundation_meta,
-            sdk_include_dir=sdk_include_dir,
-            ref_winmds=ref_winmds,
-            env=midl_env,
-        )
+
+        if not idl_files:
+            # 零用户 IDL：自动生成最小 XamlMetaDataProvider 以供构建
+            print("  (no user IDL files found, auto-generating XamlMetaDataProvider.idl)")
+            generate_xaml_metadata_provider(generated_dir)
+            idl_files = [generated_dir / "XamlMetaDataProvider.idl"]
+
+        for idl_path in idl_files:
+            # 保留相对于 src_dir 的目录结构生成 winmd，避免子目录同名 IDL 冲突
+            out_winmd = idl_to_winmd_path(idl_path, src_dir, winmd_unmerged_dir)
+            # 确保输出子目录存在
+            out_winmd.parent.mkdir(parents=True, exist_ok=True)
+            run_midl(
+                midl_exe=midl_exe,
+                idl=idl_path,
+                out_winmd=out_winmd,
+                foundation_meta=foundation_meta,
+                sdk_include_dir=sdk_include_dir,
+                ref_winmds=ref_winmds,
+                env=midl_env,
+            )
 
         print_phase("[3/8] Merge WinMDs")
+        unmerged_winmds = discover_winmd_files(winmd_unmerged_dir)
+        if not unmerged_winmds:
+            raise BuildError(
+                f"no .winmd files found in {native_path(winmd_unmerged_dir)} — MIDL compilation failed"
+            )
         mdmerge = [native_path(mdmerge_exe), "-o", native_path(winmd_merged_dir)]
         for directory in unique_parent_dirs(ref_winmds):
             mdmerge.extend(["-metadata_dir", native_path(directory)])
-        mdmerge.extend(
-            [
-                "-i",
-                native_path(winmd_unmerged_dir / "XamlMetaDataProvider.winmd"),
-                "-i",
-                native_path(winmd_unmerged_dir / "MainWindow.winmd"),
-                "-partial",
-                "-n:1",
-            ]
-        )
+        for wm in unmerged_winmds:
+            mdmerge.extend(["-i", native_path(wm)])
+        mdmerge.extend(["-partial", "-n:1"])
         run_command(mdmerge)
         require_file(merged_winmd, "merged WinMD")
 
@@ -578,6 +789,10 @@ def main(argv: list[str] | None = None) -> int:
         generate_xaml_metadata_provider(generated_dir)
 
         print_phase("[6/8] Run XAML compiler pass 1")
+
+        # 清理上次构建的陈旧 .xbf 文件，防止已删除 XAML 的残留 XBF 被 makepri 打包
+        clean_stale_files(generated_dir, "**/*.xbf")
+
         pass1_json = generated_dir / "xaml.pass1.in.json"
         pass1_out = generated_dir / "xaml.pass1.out.json"
         write_json(
@@ -617,8 +832,8 @@ def main(argv: list[str] | None = None) -> int:
         if not makepri_exe.is_file():
             raise BuildError(f"makepri.exe not found at {makepri_exe}")
         
-        # Collect .xbf files generated by XamlCompiler
-        xbf_files = sorted(generated_dir.glob("*.xbf"))
+        # Collect .xbf files generated by XamlCompiler (recursive to cover subdirectories)
+        xbf_files = sorted(generated_dir.rglob("*.xbf"))
         if not xbf_files:
             raise BuildError("No .xbf files found - XAML compilation may have failed")
         

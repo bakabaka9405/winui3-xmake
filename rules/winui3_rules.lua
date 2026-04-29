@@ -19,24 +19,17 @@ rule("winui3.codegen")
             print("")
             print("=== WinUI3 Code Generation ===")
             local py = "python"
-            -- Detect Python: try common locations
-            local candidates = {
-                (os.getenv("USERPROFILE") or "") .. "\\uv-venv\\base\\Scripts\\python.exe",
-                (os.getenv("USERPROFILE") or "") .. "\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
-                "python3", "python",
-            }
-            for _, c in ipairs(candidates) do
-                if c and (os.isfile(c) or c:find("^python")) then
-                    py = c; break
-                end
-            end
             local script = path.join(os.projectdir(), "scripts/build_winui3.py")
             local cmd = py .. ' "' .. path.translate(script) .. '" --build-dir "' .. path.translate(target:targetdir()) .. '"'
             print("  " .. cmd)
             os.run(cmd)
             print("=== Code Generation Complete ===\n")
         end, {dependfile = path.join(target:targetdir(), "generated", ".codegen_stamp"),
-              files = {"src/App.xaml", "src/MainWindow.xaml", "src/MainWindow.idl", "src/XamlMetaDataProvider.idl"}})
+              files = table.join(
+                  os.files(path.join(os.projectdir(), "src", "**.xaml")),
+                  os.files(path.join(os.projectdir(), "src", "**.xaml.h")),
+                  os.files(path.join(os.projectdir(), "src", "**.idl"))
+              )})
     end)
 
 -- ── Rule: WinUI3 Post-Build ────────────────────────────────────
@@ -51,10 +44,13 @@ rule("winui3.postbuild")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)
         
-        -- Copy .xbf files from generated/ to output root (MRT needs them at root)
+        -- Copy .xbf files from generated/ to output root, preserving subdirectory structure
+        -- This prevents name collisions when XAML files are in different subdirectories
         local gendir = path.join(outdir, "generated")
-        for _, xbf in ipairs(os.files(gendir .. "/*.xbf")) do
-            local dst = path.join(outdir, path.filename(xbf))
+        for _, xbf in ipairs(os.files(gendir .. "/**/*.xbf")) do
+            -- Compute path relative to generated/ to preserve directory hierarchy
+            local rel = path.relative(xbf, gendir)
+            local dst = path.join(outdir, rel)
             os.cp(xbf, dst)
         end
         

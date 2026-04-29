@@ -48,9 +48,6 @@ target("xmake_demo")
     add_links("windowsapp")
     add_ldflags("/SUBSYSTEM:WINDOWS")
     
-    -- Source files
-    add_files("src/main.cpp")
-    add_files("src/App.xaml.cpp")
-    add_files("src/MainWindow.xaml.cpp")
-    add_files("src/XamlMetaDataProvider.cpp")
-    add_files("src/app.manifest")
+    -- Source files (auto-discovered via glob patterns)
+    add_files("src/**.cpp")
+    add_files("src/**.manifest")
