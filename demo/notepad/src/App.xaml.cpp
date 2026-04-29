@@ -2,8 +2,7 @@
 #include "MainWindow.xaml.h"
 #include "pch.h"
 
-
-namespace winrt::xmake_demo::implementation {
+namespace winrt::notepad::implementation {
 App::App() {
 #if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
 	UnhandledException([](auto&&, Microsoft::UI::Xaml::UnhandledExceptionEventArgs const& e) {
@@ -20,4 +19,4 @@ void App::OnLaunched(Microsoft::UI::Xaml::LaunchActivatedEventArgs const&) {
 	m_window = winrt::make<MainWindow>();
 	m_window.Activate();
 }
-} // namespace winrt::xmake_demo::implementation
+} // namespace winrt::notepad::implementation

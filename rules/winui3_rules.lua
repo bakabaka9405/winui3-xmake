@@ -7,28 +7,34 @@
 -- It handles all 8 phases of WinUI3 code generation.
 rule("winui3.codegen")
     on_load(function (target)
-        -- Add generated output directories to include paths
+        -- Add generated output directories to include paths (per-target via set_targetdir)
         target:add("includedirs", path.join(target:targetdir(), "generated"))
         target:add("includedirs", path.join(target:targetdir(), "generated", "sources"))
     end)
     before_build(function (target)
         import("core.project.depend")
         
+        -- Resolve target-specific values with defaults for single-target compatibility
+        local namespace = target:values("winui3.namespace") or "xmake_demo"
+        local src_dir = target:values("winui3.src_dir") or path.join(os.projectdir(), "src")
+        local root_dir = target:values("winui3.root_dir") or os.projectdir()
+        local build_dir = target:targetdir()
+        
         -- Only run codegen if source files changed
         depend.on_changed(function ()
             print("")
             print("=== WinUI3 Code Generation ===")
             local py = "python"
-            local script = path.join(os.projectdir(), "scripts/build_winui3.py")
-            local cmd = py .. ' "' .. path.translate(script) .. '" --build-dir "' .. path.translate(target:targetdir()) .. '"'
+            local script = path.join(root_dir, "scripts/build_winui3.py")
+            local cmd = py .. ' "' .. path.translate(script) .. '" --build-dir "' .. path.translate(build_dir) .. '" --project-dir "' .. path.translate(root_dir) .. '" --namespace "' .. namespace .. '" --src-dir "' .. path.translate(src_dir) .. '"'
             print("  " .. cmd)
             os.run(cmd)
             print("=== Code Generation Complete ===\n")
-        end, {dependfile = path.join(target:targetdir(), "generated", ".codegen_stamp"),
+        end, {dependfile = path.join(build_dir, "generated", ".codegen_stamp"),
               files = table.join(
-                  os.files(path.join(os.projectdir(), "src", "**.xaml")),
-                  os.files(path.join(os.projectdir(), "src", "**.xaml.h")),
-                  os.files(path.join(os.projectdir(), "src", "**.idl"))
+                  os.files(path.join(src_dir, "**.xaml")),
+                  os.files(path.join(src_dir, "**.xaml.h")),
+                  os.files(path.join(src_dir, "**.idl"))
               )})
     end)
 
@@ -44,13 +50,11 @@ rule("winui3.postbuild")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)
         
-        -- Copy .xbf files from generated/ to output root, preserving subdirectory structure
-        -- This prevents name collisions when XAML files are in different subdirectories
+        -- Copy .xbf files from generated/ to output root
+        -- Note: xmake's os.files() does not support ** glob; XamlCompiler outputs all .xbf to root
         local gendir = path.join(outdir, "generated")
-        for _, xbf in ipairs(os.files(gendir .. "/**/*.xbf")) do
-            -- Compute path relative to generated/ to preserve directory hierarchy
-            local rel = path.relative(xbf, gendir)
-            local dst = path.join(outdir, rel)
+        for _, xbf in ipairs(os.files(gendir .. "/*.xbf")) do
+            local dst = path.join(outdir, path.filename(xbf))
             os.cp(xbf, dst)
         end
         

@@ -2,7 +2,7 @@
 
 #include "App.xaml.g.h"
 
-namespace winrt::xmake_demo::implementation {
+namespace winrt::hello::implementation {
 struct App : AppT<App> {
 	App();
 
@@ -11,4 +11,4 @@ struct App : AppT<App> {
 private:
 	winrt::Microsoft::UI::Xaml::Window m_window{ nullptr };
 };
-} // namespace winrt::xmake_demo::implementation
+} // namespace winrt::hello::implementation

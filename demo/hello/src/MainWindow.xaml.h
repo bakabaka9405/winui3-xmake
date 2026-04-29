@@ -2,7 +2,7 @@
 
 #include "MainWindow.g.h"
 
-namespace winrt::xmake_demo::implementation {
+namespace winrt::hello::implementation {
 struct MainWindow : MainWindowT<MainWindow> {
 	MainWindow();
 
@@ -10,9 +10,9 @@ struct MainWindow : MainWindowT<MainWindow> {
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 };
-} // namespace winrt::xmake_demo::implementation
+} // namespace winrt::hello::implementation
 
-namespace winrt::xmake_demo::factory_implementation {
+namespace winrt::hello::factory_implementation {
 struct MainWindow : MainWindowT<MainWindow, implementation::MainWindow> {
 };
-} // namespace winrt::xmake_demo::factory_implementation
+} // namespace winrt::hello::factory_implementation

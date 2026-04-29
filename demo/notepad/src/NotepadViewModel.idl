@@ -1,0 +1,14 @@
+namespace notepad
+{
+    [default_interface]
+    runtimeclass NotepadViewModel : Microsoft.UI.Xaml.Data.INotifyPropertyChanged
+    {
+        NotepadViewModel();
+        String DocumentText;
+        Int32 CharCount{ get; };
+        Int32 LineCount{ get; };
+        Int32 WordCount{ get; };
+        Int32 CursorLine;
+        Int32 CursorColumn;
+    }
+}

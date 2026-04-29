@@ -7,7 +7,7 @@
 #include "MainWindow.g.cpp"
 #endif
 
-namespace winrt::xmake_demo::implementation {
+namespace winrt::hello::implementation {
 MainWindow::MainWindow() {
 	InitializeComponent();
 
@@ -26,4 +26,4 @@ void MainWindow::myButton_Click(
 	mux::RoutedEventArgs const&) {
 	myButton().Content(winrt::box_value(L"Clicked"));
 }
-} // namespace winrt::xmake_demo::implementation
+} // namespace winrt::hello::implementation

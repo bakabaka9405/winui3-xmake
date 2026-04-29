@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="notepad.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:notepad">
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Menu bar  -->
+        <MenuBar Grid.Row="0">
+            <MenuBarItem Title="File">
+                <MenuFlyoutItem Click="OnFileNew" Text="New">
+                    <MenuFlyoutItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="N" Modifiers="Control" />
+                    </MenuFlyoutItem.KeyboardAccelerators>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Click="OnFileExit" Text="Exit" />
+            </MenuBarItem>
+        </MenuBar>
+
+        <!--  Editor area with x:Bind two-way binding  -->
+        <TextBox
+            x:Name="Editor"
+            Grid.Row="1"
+            Margin="4"
+            AcceptsReturn="True"
+            FontFamily="Consolas"
+            FontSize="14"
+            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            SelectionChanged="OnEditorSelectionChanged"
+            Text="{x:Bind ViewModel.DocumentText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            TextWrapping="Wrap" />
+
+        <!--  Status bar — real-time stats demonstrate bidirectional x:Bind  -->
+        <StackPanel
+            Grid.Row="2"
+            Margin="12,6"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="20">
+            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}">
+                <Run Text="字数: " />
+                <Run Text="{x:Bind ViewModel.CharCount, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}">
+                <Run Text="行数: " />
+                <Run Text="{x:Bind ViewModel.LineCount, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}">
+                <Run Text="单词: " />
+                <Run Text="{x:Bind ViewModel.WordCount, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorTertiary}">
+                <Run Text="Ln " />
+                <Run Text="{x:Bind ViewModel.CursorLine, Mode=OneWay}" />
+                <Run Text=", Col " />
+                <Run Text="{x:Bind ViewModel.CursorColumn, Mode=OneWay}" />
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</Window>

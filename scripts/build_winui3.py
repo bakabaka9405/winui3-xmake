@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 
-ROOT_NAMESPACE = "xmake_demo"
 FEATURE_CONTROL_FLAGS = (
     "EnableXBindDiagnostics;"
     "EnableDefaultValidationContextGeneration;"
@@ -487,15 +486,14 @@ def msbuild_item(path: Path, dependent_upon: Path | None = None) -> dict[str, st
 def build_xaml_json(
     *,
     generated_dir: Path,
-    project_dir: Path,
+    src_dir: Path,
+    namespace: str,
     winsdk_version: str,
     ref_winmds: list[Path],
     merged_winmd: Path,
     genxbf_path: Path,
     is_pass1: bool,
 ) -> dict[str, Any]:
-    src_dir = project_dir / "src"
-
     # 自动发现所有 .xaml 文件，按命名约定分类
     xaml_files = discover_xaml_files(src_dir)
     if not xaml_files:
@@ -518,7 +516,7 @@ def build_xaml_json(
         "ProjectPath": native_path(absolute_path(xaml_apps[0] if xaml_apps else xaml_files[0])),
         "LanguageSourceExtension": ".cpp",
         "OutputPath": native_path(generated_dir),
-        "RootNamespace": ROOT_NAMESPACE,
+        "RootNamespace": namespace,
         "PrecompiledHeaderFile": "pch.h",
         "FeatureControlFlags": FEATURE_CONTROL_FLAGS,
         "ReferenceAssemblies": [msbuild_item(path) for path in ref_winmds],
@@ -549,10 +547,10 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     write_text(path, json.dumps(data, indent=2) + "\n")
 
 
-def generate_xaml_metadata_provider(generated_dir: Path) -> None:
+def generate_xaml_metadata_provider(generated_dir: Path, namespace: str) -> None:
     write_text(
         generated_dir / "XamlMetaDataProvider.idl",
-        "namespace xmake_demo\n"
+        f"namespace {namespace}\n"
         "{\n"
         "    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider\n"
         "    {\n"
@@ -620,6 +618,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=False,
         help="Enable verbose output: show unfiltered tool output for debugging.",
     )
+    parser.add_argument(
+        "--namespace",
+        type=str,
+        default="xmake_demo",
+        help="Root namespace for the project.",
+    )
+    parser.add_argument(
+        "--src-dir",
+        type=str,
+        default=None,
+        help="Source directory containing .xaml/.idl files. Defaults to <project-dir>/src.",
+    )
     return parser.parse_args(argv)
 
 
@@ -635,7 +645,7 @@ def main(argv: list[str] | None = None) -> int:
         generated_sources_dir = generated_dir / "sources"
         winmd_unmerged_dir = build_dir / "winmd_unmerged"
         winmd_merged_dir = build_dir / "winmd_merged"
-        merged_winmd = winmd_merged_dir / f"{ROOT_NAMESPACE}.winmd"
+        merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
 
         root = nuget_root()
         # WinAppSDK 1.8+ sub-packages (latest stable, April 2026)
@@ -659,7 +669,10 @@ def main(argv: list[str] | None = None) -> int:
             root / "microsoft.web.webview2" / "1.0.3912.50" / "lib" / "Microsoft.Web.WebView2.Core.winmd"
         )
 
-        src_dir = require_dir(project_dir / "src", "project src directory")
+        src_dir = require_dir(
+            absolute_path(Path(args.src_dir)) if args.src_dir else project_dir / "src",
+            "project src directory",
+        )
 
         # 动态发现用户编写的源文件，替代硬编码文件列表
         xaml_files = discover_xaml_files(src_dir)
@@ -731,7 +744,7 @@ def main(argv: list[str] | None = None) -> int:
         if not idl_files:
             # 零用户 IDL：自动生成最小 XamlMetaDataProvider 以供构建
             print("  (no user IDL files found, auto-generating XamlMetaDataProvider.idl)")
-            generate_xaml_metadata_provider(generated_dir)
+            generate_xaml_metadata_provider(generated_dir, args.namespace)
             idl_files = [generated_dir / "XamlMetaDataProvider.idl"]
 
         for idl_path in idl_files:
@@ -774,7 +787,7 @@ def main(argv: list[str] | None = None) -> int:
             "-comp",
             native_path(generated_sources_dir),
             "-name",
-            ROOT_NAMESPACE,
+            args.namespace,
             "-pch",
             "pch.h",
             "-prefix",
@@ -786,7 +799,7 @@ def main(argv: list[str] | None = None) -> int:
         run_command(cppwinrt_project)
 
         print_phase("[5/8] Generate XamlMetaDataProvider source")
-        generate_xaml_metadata_provider(generated_dir)
+        generate_xaml_metadata_provider(generated_dir, args.namespace)
 
         print_phase("[6/8] Run XAML compiler pass 1")
 
@@ -799,7 +812,8 @@ def main(argv: list[str] | None = None) -> int:
             pass1_json,
             build_xaml_json(
                 generated_dir=generated_dir,
-                project_dir=project_dir,
+                src_dir=src_dir,
+                namespace=args.namespace,
                 winsdk_version=winsdk_version,
                 ref_winmds=ref_winmds,
                 merged_winmd=merged_winmd,
@@ -816,7 +830,8 @@ def main(argv: list[str] | None = None) -> int:
             pass2_json,
             build_xaml_json(
                 generated_dir=generated_dir,
-                project_dir=project_dir,
+                src_dir=src_dir,
+                namespace=args.namespace,
                 winsdk_version=winsdk_version,
                 ref_winmds=ref_winmds,
                 merged_winmd=merged_winmd,
