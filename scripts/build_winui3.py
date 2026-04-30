@@ -15,14 +15,13 @@ from typing import Any
 
 
 FEATURE_CONTROL_FLAGS = (
-    "EnableXBindDiagnostics;"
-    "EnableDefaultValidationContextGeneration;"
-    "EnableWin32Codegen"
+    "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen"
 )
 
 # ── 输出控制 ───────────────────────────────────────────────────────
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
 _verbose: bool = False
+
 
 def _discover_winsdk_root() -> Path:
     """Discover Windows SDK root from environment or registry."""
@@ -31,14 +30,18 @@ def _discover_winsdk_root() -> Path:
         return Path(env)
     try:
         import winreg
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                            r"SOFTWARE\Microsoft\Windows Kits\Installed Roots")
+
+        key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Windows Kits\Installed Roots",
+        )
         value, _ = winreg.QueryValueEx(key, "KitsRoot10")
         winreg.CloseKey(key)
         return Path(value)
     except OSError:
         pass
     return Path(r"C:\Program Files (x86)\Windows Kits\10")
+
 
 def _discover_winsdk_version(sdk_root: Path) -> str:
     """Discover highest available UAP SDK version."""
@@ -47,6 +50,7 @@ def _discover_winsdk_version(sdk_root: Path) -> str:
         return "10.0.26100.0"
     versions = sorted(d.name for d in uap_dir.iterdir() if d.is_dir())
     return versions[-1] if versions else "10.0.26100.0"
+
 
 def _discover_vc_bin() -> Path:
     """Discover VC toolchain binary directory."""
@@ -57,7 +61,9 @@ def _discover_vc_bin() -> Path:
     candidates = [
         Path(r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC"),
         Path(r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC"),
-        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC"),
+        Path(
+            r"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC"
+        ),
         Path(r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"),
     ]
     for base in candidates:
@@ -65,7 +71,10 @@ def _discover_vc_bin() -> Path:
             versions = sorted(d.name for d in base.iterdir() if d.is_dir())
             if versions:
                 return base / versions[-1] / "bin" / "HostX64" / "x64"
-    return Path(r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\bin\HostX64\x64")
+    return Path(
+        r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\bin\HostX64\x64"
+    )
+
 
 WINDOWS_SDK_ROOT = _discover_winsdk_root()
 WINDOWS_SDK_VERSION = _discover_winsdk_version(WINDOWS_SDK_ROOT)
@@ -128,7 +137,9 @@ def xaml_to_header(xaml_path: Path) -> Path:
     return Path(os.fspath(xaml_path) + ".h")
 
 
-def classify_xaml(xaml_files: list[Path], src_dir: Path) -> tuple[list[Path], list[Path]]:
+def classify_xaml(
+    xaml_files: list[Path], src_dir: Path
+) -> tuple[list[Path], list[Path]]:
     """将 XAML 文件分为 (应用程序入口, 页面) 两组。
 
     仅 src_dir 根目录下的 App.xaml 被视为应用程序入口；
@@ -167,7 +178,9 @@ def remove_stale_projection_dir(directory: Path) -> None:
     try:
         shutil.rmtree(directory)
     except OSError as exc:
-        raise BuildError(f"failed to remove stale projection directory {native_path(directory)}: {exc}") from exc
+        raise BuildError(
+            f"failed to remove stale projection directory {native_path(directory)}: {exc}"
+        ) from exc
 
 
 def idl_to_winmd_path(idl_path: Path, base_dir: Path, out_dir: Path) -> Path:
@@ -260,8 +273,15 @@ def _filter_subprocess_output(stdout: str, stderr: str) -> str | None:
             continue
 
         # 跳过 XamlCompiler 的元数据回显行
-        if stripped.startswith(("ReferenceAssembly:", "ReferenceAssemblyPath:",
-                                "XamlPage:", "XamlApplication:", "ClIncludeFile:")):
+        if stripped.startswith(
+            (
+                "ReferenceAssembly:",
+                "ReferenceAssemblyPath:",
+                "XamlPage:",
+                "XamlApplication:",
+                "ClIncludeFile:",
+            )
+        ):
             continue
 
         # 跳过冗长的路径输出（以特定前缀开头的非诊断行）
@@ -340,15 +360,21 @@ def run_command(
 
 
 def discover_winsdk_version(winsdk_root: Path) -> str:
-    uap_dir = require_dir(winsdk_root / "Platforms" / "UAP", "Windows SDK UAP platform directory")
+    uap_dir = require_dir(
+        winsdk_root / "Platforms" / "UAP", "Windows SDK UAP platform directory"
+    )
     versions = [path.name for path in uap_dir.iterdir() if path.is_dir()]
     if not versions:
-        raise BuildError(f"no Windows SDK UAP versions found under: {native_path(uap_dir)}")
+        raise BuildError(
+            f"no Windows SDK UAP versions found under: {native_path(uap_dir)}"
+        )
     return max(versions, key=parse_version)
 
 
 def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, Path]:
-    platform_xml = winsdk_root / "Platforms" / "UAP" / requested_version / "Platform.xml"
+    platform_xml = (
+        winsdk_root / "Platforms" / "UAP" / requested_version / "Platform.xml"
+    )
     if platform_xml.is_file():
         return requested_version, platform_xml
 
@@ -373,7 +399,9 @@ def parse_platform_contracts(platform_xml: Path) -> list[tuple[str, str]]:
         name = element.attrib.get("name")
         version = element.attrib.get("version")
         if not name or not version:
-            raise BuildError(f"ApiContract in {native_path(platform_xml)} is missing name or version")
+            raise BuildError(
+                f"ApiContract in {native_path(platform_xml)} is missing name or version"
+            )
         contracts.append((name, version))
 
     if not contracts:
@@ -409,7 +437,9 @@ def collect_appsdk_winmds(
     winmds: list[Path] = []
 
     # Foundation metadata (root-level)
-    foundation_meta = require_dir(foundation_pkg / "metadata", "Foundation metadata directory")
+    foundation_meta = require_dir(
+        foundation_pkg / "metadata", "Foundation metadata directory"
+    )
     for name in APP_SDK_WINMDS_FOUNDATION:
         candidate = foundation_meta / f"{name}.winmd"
         winmds.append(require_file(candidate, f"Foundation WinMD {name}"))
@@ -421,11 +451,15 @@ def collect_appsdk_winmds(
         winmds.append(require_file(candidate, f"WinUI WinMD {name}"))
 
     # InteractiveExperiences metadata (versioned sub-directory)
-    ixp_meta_root = require_dir(ixp_pkg / "metadata", "InteractiveExperiences metadata directory")
+    ixp_meta_root = require_dir(
+        ixp_pkg / "metadata", "InteractiveExperiences metadata directory"
+    )
     ixp_versions = sorted(d.name for d in ixp_meta_root.iterdir() if d.is_dir())
     if not ixp_versions:
         raise BuildError(f"no version sub-directories in: {native_path(ixp_meta_root)}")
-    ixp_meta = require_dir(ixp_meta_root / ixp_versions[-1], "InteractiveExperiences version metadata")
+    ixp_meta = require_dir(
+        ixp_meta_root / ixp_versions[-1], "InteractiveExperiences version metadata"
+    )
     for name in APP_SDK_WINMDS_IXP:
         candidate = ixp_meta / f"{name}.winmd"
         winmds.append(require_file(candidate, f"InteractiveExperiences WinMD {name}"))
@@ -435,12 +469,17 @@ def collect_appsdk_winmds(
 
 def find_foundation_metadata_dir(winsdk_root: Path, winsdk_version: str) -> Path:
     foundation_root = require_dir(
-        winsdk_root / "References" / winsdk_version / "Windows.Foundation.FoundationContract",
+        winsdk_root
+        / "References"
+        / winsdk_version
+        / "Windows.Foundation.FoundationContract",
         "Windows.Foundation.FoundationContract metadata directory",
     )
     versions = [path for path in foundation_root.iterdir() if path.is_dir()]
     if not versions:
-        raise BuildError(f"no FoundationContract versions found under: {native_path(foundation_root)}")
+        raise BuildError(
+            f"no FoundationContract versions found under: {native_path(foundation_root)}"
+        )
     return max(versions, key=lambda path: parse_version(path.name))
 
 
@@ -517,13 +556,17 @@ def build_xaml_json(
         if hf.is_file():
             header_files.append((hf, xf))
         else:
-            print(f" mwarning: no header file found for {xf.name} (expected {hf.name}), skipping ClIncludeFiles entry")
+            print(
+                f" mwarning: no header file found for {xf.name} (expected {hf.name}), skipping ClIncludeFiles entry"
+            )
 
     data: dict[str, Any] = {
         "SavedStateFile": native_path(generated_dir / "XamlCompilerState.xml"),
         "IsPass1": is_pass1,
         "Language": "CppWinRT",
-        "ProjectPath": native_path(absolute_path(xaml_apps[0] if xaml_apps else xaml_files[0])),
+        "ProjectPath": native_path(
+            absolute_path(xaml_apps[0] if xaml_apps else xaml_files[0])
+        ),
         "LanguageSourceExtension": ".cpp",
         "OutputPath": native_path(generated_dir),
         "RootNamespace": namespace,
@@ -565,7 +608,13 @@ def projection_fingerprint(
     webview2_winmd: Path,
     appsdk_winmds: list[Path],
 ) -> dict[str, Any]:
-    inputs = [build_script, cppwinrt_exe, *platform_winmds, webview2_winmd, *appsdk_winmds]
+    inputs = [
+        build_script,
+        cppwinrt_exe,
+        *platform_winmds,
+        webview2_winmd,
+        *appsdk_winmds,
+    ]
     files: list[dict[str, Any]] = []
 
     for input_path in inputs:
@@ -581,7 +630,9 @@ def projection_fingerprint(
     return {"version": 1, "files": files}
 
 
-def is_shared_projection_current(shared_projection_dir: Path, fingerprint: dict[str, Any]) -> bool:
+def is_shared_projection_current(
+    shared_projection_dir: Path, fingerprint: dict[str, Any]
+) -> bool:
     stamp_path = shared_projection_dir / ".shared_projection_stamp.json"
     required_headers = [
         shared_projection_dir / "winrt" / "Windows.Foundation.h",
@@ -602,7 +653,9 @@ def is_shared_projection_current(shared_projection_dir: Path, fingerprint: dict[
     return existing == fingerprint
 
 
-def write_shared_projection_stamp(shared_projection_dir: Path, fingerprint: dict[str, Any]) -> None:
+def write_shared_projection_stamp(
+    shared_projection_dir: Path, fingerprint: dict[str, Any]
+) -> None:
     write_json(shared_projection_dir / ".shared_projection_stamp.json", fingerprint)
 
 
@@ -657,7 +710,14 @@ def generate_shared_projection_headers(
         phase1c.extend(["-in", native_path(winmd)])
     for winmd in platform_winmds:
         phase1c.extend(["-ref", native_path(winmd)])
-    phase1c.extend(["-ref", native_path(webview2_winmd), "-out", native_path(shared_projection_dir)])
+    phase1c.extend(
+        [
+            "-ref",
+            native_path(webview2_winmd),
+            "-out",
+            native_path(shared_projection_dir),
+        ]
+    )
     run_command(phase1c)
 
 
@@ -699,8 +759,12 @@ def run_midl(
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build WinUI 3 generated C++/WinRT and XAML artifacts.")
-    parser.add_argument("--build-dir", type=Path, required=True, help="Build output directory.")
+    parser = argparse.ArgumentParser(
+        description="Build WinUI 3 generated C++/WinRT and XAML artifacts."
+    )
+    parser.add_argument(
+        "--build-dir", type=Path, required=True, help="Build output directory."
+    )
     parser.add_argument(
         "--project-dir",
         type=Path,
@@ -708,7 +772,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Project root directory. Defaults to this script's parent directory.",
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         default=False,
         help="Enable verbose output: show unfiltered tool output for debugging.",
@@ -744,7 +809,11 @@ def main(argv: list[str] | None = None) -> int:
         build_dir = absolute_path(args.build_dir)
         generated_dir = build_dir / "generated"
         generated_sources_dir = generated_dir / "sources"
-        shared_projection_dir = absolute_path(args.shared_projection_dir) if args.shared_projection_dir else generated_dir
+        shared_projection_dir = (
+            absolute_path(args.shared_projection_dir)
+            if args.shared_projection_dir
+            else generated_dir
+        )
         winmd_unmerged_dir = build_dir / "winmd_unmerged"
         winmd_merged_dir = build_dir / "winmd_merged"
         merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
@@ -753,8 +822,16 @@ def main(argv: list[str] | None = None) -> int:
         # WinAppSDK 1.8+ sub-packages (latest stable, April 2026)
         foundation_pkg = root / "microsoft.windowsappsdk.foundation" / "1.8.260415000"
         winui_pkg = root / "microsoft.windowsappsdk.winui" / "1.8.260415005"
-        ixp_pkg = root / "microsoft.windowsappsdk.interactiveexperiences" / "1.8.260415001"
-        cppwinrt_exe = root / "microsoft.windows.cppwinrt" / "2.0.250303.1" / "bin" / "cppwinrt.exe"
+        ixp_pkg = (
+            root / "microsoft.windowsappsdk.interactiveexperiences" / "1.8.260415001"
+        )
+        cppwinrt_exe = (
+            root
+            / "microsoft.windows.cppwinrt"
+            / "2.0.250303.1"
+            / "bin"
+            / "cppwinrt.exe"
+        )
         buildtools_bin = (
             root
             / "microsoft.windows.sdk.buildtools"
@@ -766,9 +843,15 @@ def main(argv: list[str] | None = None) -> int:
         midl_exe = buildtools_bin / "midl.exe"
         mdmerge_exe = buildtools_bin / "mdmerge.exe"
         xaml_compiler = winui_pkg / "tools" / "net472" / "XamlCompiler.exe"
-        genxbf_dir = winui_pkg / "tools"  # XamlCompiler finds GenXbf.dll in arch subdirectories
+        genxbf_dir = (
+            winui_pkg / "tools"
+        )  # XamlCompiler finds GenXbf.dll in arch subdirectories
         webview2_winmd = (
-            root / "microsoft.web.webview2" / "1.0.3912.50" / "lib" / "Microsoft.Web.WebView2.Core.winmd"
+            root
+            / "microsoft.web.webview2"
+            / "1.0.3912.50"
+            / "lib"
+            / "Microsoft.Web.WebView2.Core.winmd"
         )
 
         src_dir = require_dir(
@@ -805,16 +888,27 @@ def main(argv: list[str] | None = None) -> int:
             "Windows SDK include directory",
         )
         for include_name in ["um", "shared", "winrt"]:
-            require_dir(sdk_include_dir / include_name, f"Windows SDK {include_name} include directory")
+            require_dir(
+                sdk_include_dir / include_name,
+                f"Windows SDK {include_name} include directory",
+            )
 
-        for directory in [shared_projection_dir, generated_dir, generated_sources_dir, winmd_unmerged_dir, winmd_merged_dir]:
+        for directory in [
+            shared_projection_dir,
+            generated_dir,
+            generated_sources_dir,
+            winmd_unmerged_dir,
+            winmd_merged_dir,
+        ]:
             directory.mkdir(parents=True, exist_ok=True)
 
         print(f"Project: {native_path(project_dir)}")
         print(f"Build:   {native_path(build_dir)}")
         print(f"Shared:  {native_path(shared_projection_dir)}")
         print(f"WinSDK:  {native_path(winsdk_root)} ({winsdk_version})")
-        print(f"Refs:    {len(platform_winmds)} platform, {len(appsdk_winmds)} WinAppSDK, 1 WebView2")
+        print(
+            f"Refs:    {len(platform_winmds)} platform, {len(appsdk_winmds)} WinAppSDK, 1 WebView2"
+        )
 
         print_phase("[1/8] Generate shared platform, WebView2, and WinAppSDK headers")
         shared_projection_fingerprint = projection_fingerprint(
@@ -824,7 +918,9 @@ def main(argv: list[str] | None = None) -> int:
             webview2_winmd=webview2_winmd,
             appsdk_winmds=appsdk_winmds,
         )
-        if is_shared_projection_current(shared_projection_dir, shared_projection_fingerprint):
+        if is_shared_projection_current(
+            shared_projection_dir, shared_projection_fingerprint
+        ):
             print("  shared projections are up to date")
         else:
             generate_shared_projection_headers(
@@ -834,7 +930,9 @@ def main(argv: list[str] | None = None) -> int:
                 webview2_winmd=webview2_winmd,
                 appsdk_winmds=appsdk_winmds,
             )
-            write_shared_projection_stamp(shared_projection_dir, shared_projection_fingerprint)
+            write_shared_projection_stamp(
+                shared_projection_dir, shared_projection_fingerprint
+            )
 
         print_phase("[2/8] Compile IDL to WinMD")
 
@@ -845,7 +943,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if not idl_files:
             # 零用户 IDL：自动生成最小 XamlMetaDataProvider 以供构建
-            print("  (no user IDL files found, auto-generating XamlMetaDataProvider.idl)")
+            print(
+                "  (no user IDL files found, auto-generating XamlMetaDataProvider.idl)"
+            )
             generate_xaml_metadata_provider(generated_dir, args.namespace)
             idl_files = [generated_dir / "XamlMetaDataProvider.idl"]
 
@@ -925,7 +1025,13 @@ def main(argv: list[str] | None = None) -> int:
                 is_pass1=True,
             ),
         )
-        run_command([native_path(xaml_compiler), native_path(pass1_json), native_path(pass1_out)])
+        run_command(
+            [
+                native_path(xaml_compiler),
+                native_path(pass1_json),
+                native_path(pass1_out),
+            ]
+        )
 
         print_phase("[7/8] Run XAML compiler pass 2")
         pass2_json = generated_dir / "xaml.pass2.in.json"
@@ -943,24 +1049,30 @@ def main(argv: list[str] | None = None) -> int:
                 is_pass1=False,
             ),
         )
-        run_command([native_path(xaml_compiler), native_path(pass2_json), native_path(pass2_out)])
+        run_command(
+            [
+                native_path(xaml_compiler),
+                native_path(pass2_json),
+                native_path(pass2_out),
+            ]
+        )
 
         # Phase 8: Generate .pri resource file (makepri)
         print_phase("[8/8] Generate .pri resource index")
         makepri_exe = buildtools_bin / "makepri.exe"
         if not makepri_exe.is_file():
             raise BuildError(f"makepri.exe not found at {makepri_exe}")
-        
+
         # Collect .xbf files generated by XamlCompiler (recursive to cover subdirectories)
         xbf_files = sorted(generated_dir.rglob("*.xbf"))
         if not xbf_files:
             raise BuildError("No .xbf files found - XAML compilation may have failed")
-        
+
         # Write resfiles list (full paths to .xbf files)
         resfiles_path = generated_dir / "layout.resfiles"
         resfiles_content = "\n".join(str(f) for f in xbf_files)
         resfiles_path.write_text(resfiles_content, encoding="utf-8")
-        
+
         # Write priconfig.xml
         priconfig_path = generated_dir / "priconfig.xml"
         priconfig_xml = f"""<?xml version="1.0" encoding="utf-8"?>
@@ -983,15 +1095,21 @@ def main(argv: list[str] | None = None) -> int:
   </index>
 </resources>"""
         priconfig_path.write_text(priconfig_xml, encoding="utf-8")
-        
+
         pri_output = generated_dir / "resources.pri"
-        run_command([
-            native_path(makepri_exe), "new",
-            "/cf", native_path(priconfig_path),
-            "/pr", native_path(project_dir),
-            "/o",
-            "/of", native_path(pri_output),
-        ])
+        run_command(
+            [
+                native_path(makepri_exe),
+                "new",
+                "/cf",
+                native_path(priconfig_path),
+                "/pr",
+                native_path(project_dir),
+                "/o",
+                "/of",
+                native_path(pri_output),
+            ]
+        )
 
         print("\n=== WinUI 3 code generation complete ===", flush=True)
     except BuildError as exc:
