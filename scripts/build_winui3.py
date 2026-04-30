@@ -160,6 +160,16 @@ def clean_stale_files(directory: Path, pattern: str, *, required: bool = False) 
             print(f"mwarning: {msg}")
 
 
+def remove_stale_projection_dir(directory: Path) -> None:
+    """Remove the target-local winrt projection directory before regenerating component projections."""
+    if not directory.is_dir():
+        return
+    try:
+        shutil.rmtree(directory)
+    except OSError as exc:
+        raise BuildError(f"failed to remove stale projection directory {native_path(directory)}: {exc}") from exc
+
+
 def idl_to_winmd_path(idl_path: Path, base_dir: Path, out_dir: Path) -> Path:
     """由 IDL 路径生成 WinMD 输出路径，保留相对于 base_dir 的目录结构以避免命名冲突。
 
@@ -547,6 +557,59 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     write_text(path, json.dumps(data, indent=2) + "\n")
 
 
+def projection_fingerprint(
+    *,
+    build_script: Path,
+    cppwinrt_exe: Path,
+    platform_winmds: list[Path],
+    webview2_winmd: Path,
+    appsdk_winmds: list[Path],
+) -> dict[str, Any]:
+    inputs = [build_script, cppwinrt_exe, *platform_winmds, webview2_winmd, *appsdk_winmds]
+    files: list[dict[str, Any]] = []
+
+    for input_path in inputs:
+        stat = input_path.stat()
+        files.append(
+            {
+                "path": native_path(input_path),
+                "size": stat.st_size,
+                "mtime_ns": stat.st_mtime_ns,
+            }
+        )
+
+    return {"version": 1, "files": files}
+
+
+def is_shared_projection_current(shared_projection_dir: Path, fingerprint: dict[str, Any]) -> bool:
+    stamp_path = shared_projection_dir / ".shared_projection_stamp.json"
+    required_headers = [
+        shared_projection_dir / "winrt" / "Windows.Foundation.h",
+        shared_projection_dir / "winrt" / "Microsoft.UI.Xaml.h",
+        shared_projection_dir / "winrt" / "Microsoft.Web.WebView2.Core.h",
+    ]
+
+    if not all(path.is_file() for path in required_headers):
+        return False
+    if not stamp_path.is_file():
+        return False
+
+    try:
+        existing = json.loads(stamp_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+
+    return existing == fingerprint
+
+
+def write_shared_projection_stamp(shared_projection_dir: Path, fingerprint: dict[str, Any]) -> None:
+    write_json(shared_projection_dir / ".shared_projection_stamp.json", fingerprint)
+
+
+def same_path(left: Path, right: Path) -> bool:
+    return os.path.normcase(native_path(left)) == os.path.normcase(native_path(right))
+
+
 def generate_xaml_metadata_provider(generated_dir: Path, namespace: str) -> None:
     write_text(
         generated_dir / "XamlMetaDataProvider.idl",
@@ -564,6 +627,38 @@ def generate_xaml_metadata_provider(generated_dir: Path, namespace: str) -> None
         '#include "XamlMetaDataProvider.h"\n'
         '#include "XamlMetaDataProvider.g.cpp"\n',
     )
+
+
+def generate_shared_projection_headers(
+    *,
+    cppwinrt_exe: Path,
+    shared_projection_dir: Path,
+    platform_winmds: list[Path],
+    webview2_winmd: Path,
+    appsdk_winmds: list[Path],
+) -> None:
+    # 阶段一：平台契约投影。
+    phase1a = [native_path(cppwinrt_exe)]
+    for winmd in platform_winmds:
+        phase1a.extend(["-in", native_path(winmd)])
+    phase1a.extend(["-out", native_path(shared_projection_dir)])
+    run_command(phase1a)
+
+    # 阶段二：WebView2 投影，引用平台契约。
+    phase1b = [native_path(cppwinrt_exe), "-in", native_path(webview2_winmd)]
+    for winmd in platform_winmds:
+        phase1b.extend(["-ref", native_path(winmd)])
+    phase1b.extend(["-out", native_path(shared_projection_dir)])
+    run_command(phase1b)
+
+    # 阶段三：Windows App SDK / WinUI 投影，引用平台契约与 WebView2。
+    phase1c = [native_path(cppwinrt_exe)]
+    for winmd in appsdk_winmds:
+        phase1c.extend(["-in", native_path(winmd)])
+    for winmd in platform_winmds:
+        phase1c.extend(["-ref", native_path(winmd)])
+    phase1c.extend(["-ref", native_path(webview2_winmd), "-out", native_path(shared_projection_dir)])
+    run_command(phase1c)
 
 
 def run_midl(
@@ -630,6 +725,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Source directory containing .xaml/.idl files. Defaults to <project-dir>/src.",
     )
+    parser.add_argument(
+        "--shared-projection-dir",
+        type=Path,
+        default=None,
+        help="Shared output directory for platform, WebView2, and Windows App SDK C++/WinRT projection headers.",
+    )
     return parser.parse_args(argv)
 
 
@@ -643,6 +744,7 @@ def main(argv: list[str] | None = None) -> int:
         build_dir = absolute_path(args.build_dir)
         generated_dir = build_dir / "generated"
         generated_sources_dir = generated_dir / "sources"
+        shared_projection_dir = absolute_path(args.shared_projection_dir) if args.shared_projection_dir else generated_dir
         winmd_unmerged_dir = build_dir / "winmd_unmerged"
         winmd_merged_dir = build_dir / "winmd_merged"
         merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
@@ -705,34 +807,34 @@ def main(argv: list[str] | None = None) -> int:
         for include_name in ["um", "shared", "winrt"]:
             require_dir(sdk_include_dir / include_name, f"Windows SDK {include_name} include directory")
 
-        for directory in [generated_dir, generated_sources_dir, winmd_unmerged_dir, winmd_merged_dir]:
+        for directory in [shared_projection_dir, generated_dir, generated_sources_dir, winmd_unmerged_dir, winmd_merged_dir]:
             directory.mkdir(parents=True, exist_ok=True)
 
         print(f"Project: {native_path(project_dir)}")
         print(f"Build:   {native_path(build_dir)}")
+        print(f"Shared:  {native_path(shared_projection_dir)}")
         print(f"WinSDK:  {native_path(winsdk_root)} ({winsdk_version})")
         print(f"Refs:    {len(platform_winmds)} platform, {len(appsdk_winmds)} WinAppSDK, 1 WebView2")
 
-        print_phase("[1/8] Generate platform, WebView2, and WinAppSDK headers")
-        phase1a = [native_path(cppwinrt_exe)]
-        for winmd in platform_winmds:
-            phase1a.extend(["-in", native_path(winmd)])
-        phase1a.extend(["-out", native_path(generated_dir)])
-        run_command(phase1a)
-
-        phase1b = [native_path(cppwinrt_exe), "-in", native_path(webview2_winmd)]
-        for winmd in platform_winmds:
-            phase1b.extend(["-ref", native_path(winmd)])
-        phase1b.extend(["-out", native_path(generated_dir)])
-        run_command(phase1b)
-
-        phase1c = [native_path(cppwinrt_exe)]
-        for winmd in appsdk_winmds:
-            phase1c.extend(["-in", native_path(winmd)])
-        for winmd in platform_winmds:
-            phase1c.extend(["-ref", native_path(winmd)])
-        phase1c.extend(["-ref", native_path(webview2_winmd), "-out", native_path(generated_dir)])
-        run_command(phase1c)
+        print_phase("[1/8] Generate shared platform, WebView2, and WinAppSDK headers")
+        shared_projection_fingerprint = projection_fingerprint(
+            build_script=Path(__file__).resolve(),
+            cppwinrt_exe=cppwinrt_exe,
+            platform_winmds=platform_winmds,
+            webview2_winmd=webview2_winmd,
+            appsdk_winmds=appsdk_winmds,
+        )
+        if is_shared_projection_current(shared_projection_dir, shared_projection_fingerprint):
+            print("  shared projections are up to date")
+        else:
+            generate_shared_projection_headers(
+                cppwinrt_exe=cppwinrt_exe,
+                shared_projection_dir=shared_projection_dir,
+                platform_winmds=platform_winmds,
+                webview2_winmd=webview2_winmd,
+                appsdk_winmds=appsdk_winmds,
+            )
+            write_shared_projection_stamp(shared_projection_dir, shared_projection_fingerprint)
 
         print_phase("[2/8] Compile IDL to WinMD")
 
@@ -778,6 +880,8 @@ def main(argv: list[str] | None = None) -> int:
         require_file(merged_winmd, "merged WinMD")
 
         print_phase("[4/8] Generate project C++/WinRT sources")
+        if not same_path(shared_projection_dir, generated_dir):
+            remove_stale_projection_dir(generated_dir / "winrt")
         cppwinrt_project = [
             native_path(cppwinrt_exe),
             "-in",

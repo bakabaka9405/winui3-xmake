@@ -34,6 +34,7 @@ rule("winui3.app")
         -- ── Generated output include directories ──
         target:add("includedirs", path.join(target:targetdir(), "generated"))
         target:add("includedirs", path.join(target:targetdir(), "generated", "sources"))
+        target:add("includedirs", path.join(path.directory(target:targetdir()), "shared", "generated"))
 
         -- ── NuGet include directories ──
         target:add("includedirs", NUGET_RUNTIME .. "/include")
@@ -49,8 +50,8 @@ rule("winui3.app")
         end
 
         -- ── Compiler flags ──
-        target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/std:c++20",
-                    "/DNOMINMAX", "/DUNICODE", "/D_UNICODE")
+        target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8",
+                    "/DNOMINMAX", "/DWIN32_LEAN_AND_MEAN", "/DUNICODE", "/D_UNICODE")
 
         -- ── Link libraries ──
         target:add("links", path.translate(NUGET_FOUNDATION .. "/lib/native/x64/Microsoft.WindowsAppRuntime.Bootstrap.lib"))
@@ -66,29 +67,31 @@ rule("winui3.app")
         local src_dir   = target:values("winui3.src_dir") or path.join(os.projectdir(), "src")
         local root_dir  = target:values("winui3.root_dir") or os.projectdir()
         local build_dir = target:targetdir()
+        local shared_projection_dir = path.join(path.directory(build_dir), "shared", "generated")
 
         depend.on_changed(function ()
             print("")
             print("=== WinUI3 Code Generation ===")
             local py     = "python"
             local script = path.join(root_dir, "scripts/build_winui3.py")
-            local cmd    = table.concat({
-                py,
-                '"' .. path.translate(script) .. '"',
-                '--build-dir "' .. path.translate(build_dir) .. '"',
-                '--project-dir "' .. path.translate(root_dir) .. '"',
-                '--namespace "' .. namespace .. '"',
-                '--src-dir "' .. path.translate(src_dir) .. '"',
-            }, " ")
-            print("  " .. cmd)
-            os.run(cmd)
+            local args   = {
+                path.translate(script),
+                "--build-dir", path.translate(build_dir),
+                "--project-dir", path.translate(root_dir),
+                "--namespace", namespace,
+                "--src-dir", path.translate(src_dir),
+                "--shared-projection-dir", path.translate(shared_projection_dir),
+            }
+            print("  " .. py .. " " .. table.concat(args, " "))
+            os.runv(py, args)
             print("=== Code Generation Complete ===\n")
         end, {
             dependfile = path.join(build_dir, "generated", ".codegen_stamp"),
             files = table.join(
                 os.files(path.join(src_dir, "**.xaml")),
                 os.files(path.join(src_dir, "**.xaml.h")),
-                os.files(path.join(src_dir, "**.idl"))
+                os.files(path.join(src_dir, "**.idl")),
+                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "rules", "winui3_rules.lua") }
             ),
         })
     end)

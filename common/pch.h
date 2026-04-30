@@ -1,6 +1,5 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
 #include <hstring.h>
 #include <restrictederrorinfo.h>
 #include <unknwn.h>
