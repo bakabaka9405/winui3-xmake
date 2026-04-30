@@ -1,0 +1,164 @@
+<Page
+    x:Class="gallery.FeedbackPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+        <Style x:Key="PropGroupStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  ═══ Left: Demo Area ═══  -->
+        <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="8">
+
+                <!--  Determinate ProgressBar  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ProgressBar (Determinate)" />
+                <ProgressBar
+                    x:Name="DemoProgressBar"
+                    MinWidth="300"
+                    HorizontalAlignment="Left"
+                    Maximum="100"
+                    Value="30" />
+
+                <!--  Indeterminate ProgressBar  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ProgressBar (Indeterminate)" />
+                <ProgressBar
+                    x:Name="DemoIndeterminateBar"
+                    MinWidth="300"
+                    HorizontalAlignment="Left"
+                    IsIndeterminate="True" />
+
+                <!--  ProgressRing  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ProgressRing" />
+                <ProgressRing
+                    x:Name="DemoProgressRing"
+                    HorizontalAlignment="Left"
+                    IsActive="True" />
+
+                <!--  InfoBar  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="InfoBar" />
+                <InfoBar
+                    x:Name="DemoInfoBar"
+                    Title="Information"
+                    IsClosable="True"
+                    IsOpen="True"
+                    Message="This is a demo info bar."
+                    Severity="Informational">
+                    <InfoBar.ActionButton>
+                        <Button Click="InfoBarAction_Click" Content="Action" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  ═══ Right: Property Panel ═══  -->
+        <ScrollViewer
+            Grid.Column="1"
+            Padding="16,16"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="4">
+
+                <!--  ProgressBar Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="Determinate ProgressBar" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Text="Value" />
+                <Slider
+                    x:Name="ProgressBarValueSlider"
+                    Maximum="100"
+                    Minimum="0"
+                    StepFrequency="1"
+                    ValueChanged="ProgressBarValueSlider_ValueChanged"
+                    Value="30" />
+
+                <ToggleSwitch
+                    x:Name="ProgressBarIndeterminateToggle"
+                    Header="IsIndeterminate"
+                    IsOn="False"
+                    Toggled="ProgressBarIndeterminateToggle_Toggled" />
+
+                <ToggleSwitch
+                    x:Name="ProgressBarShowPausedToggle"
+                    Header="ShowPaused"
+                    IsOn="False"
+                    Toggled="ProgressBarShowPausedToggle_Toggled" />
+
+                <ToggleSwitch
+                    x:Name="ProgressBarShowErrorToggle"
+                    Header="ShowError"
+                    IsOn="False"
+                    Toggled="ProgressBarShowErrorToggle_Toggled" />
+
+                <!--  ProgressRing Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="ProgressRing" />
+                <ToggleSwitch
+                    x:Name="ProgressRingActiveToggle"
+                    Header="IsActive"
+                    IsOn="True"
+                    Toggled="ProgressRingActiveToggle_Toggled" />
+
+                <!--  InfoBar Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="InfoBar" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Text="Severity" />
+                <ComboBox
+                    x:Name="InfoBarSeverityCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="InfoBarSeverityCombo_SelectionChanged">
+                    <ComboBoxItem Content="Informational" />
+                    <ComboBoxItem Content="Success" />
+                    <ComboBoxItem Content="Warning" />
+                    <ComboBoxItem Content="Error" />
+                </ComboBox>
+
+                <TextBlock
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Text="Title" />
+                <TextBox
+                    x:Name="InfoBarTitleBox"
+                    Text="Information"
+                    TextChanged="InfoBarTitleBox_TextChanged" />
+
+                <TextBlock
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Text="Message" />
+                <TextBox
+                    x:Name="InfoBarMessageBox"
+                    Text="This is a demo info bar."
+                    TextChanged="InfoBarMessageBox_TextChanged" />
+
+                <ToggleSwitch
+                    x:Name="InfoBarClosableToggle"
+                    Header="IsClosable"
+                    IsOn="True"
+                    Toggled="InfoBarClosableToggle_Toggled" />
+
+                <ToggleSwitch
+                    x:Name="InfoBarOpenToggle"
+                    Header="IsOpen"
+                    IsOn="True"
+                    Toggled="InfoBarOpenToggle_Toggled" />
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

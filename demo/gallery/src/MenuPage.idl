@@ -1,0 +1,8 @@
+namespace gallery
+{
+    [default_interface]
+    runtimeclass MenuPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        MenuPage();
+    }
+}

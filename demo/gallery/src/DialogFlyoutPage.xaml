@@ -1,0 +1,182 @@
+<Page
+    x:Class="gallery.DialogFlyoutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,8,0,4" />
+        </Style>
+        <Style x:Key="PropGroupStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+        <Style x:Key="PropLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  ═══ Left: Demo Area ═══  -->
+        <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="12">
+
+                <!--  ContentDialog  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ContentDialog" />
+                <Button
+                    x:Name="ShowDialogBtn"
+                    HorizontalAlignment="Left"
+                    Click="OnShowDialogClick"
+                    Content="Show ContentDialog" />
+
+                <!--  Flyout  -->
+                <TextBlock
+                    Margin="0,20,0,4"
+                    Style="{StaticResource SectionHeaderStyle}"
+                    Text="Flyout" />
+                <Button
+                    x:Name="DemoFlyoutButton"
+                    HorizontalAlignment="Left"
+                    Content="Show Flyout">
+                    <Button.Flyout>
+                        <Flyout x:Name="DemoFlyout" Placement="Top">
+                            <StackPanel Padding="12" Spacing="8">
+                                <TextBlock Text="Enter some text:" />
+                                <TextBox
+                                    x:Name="FlyoutTextBox"
+                                    Width="220"
+                                    PlaceholderText="Type here..." />
+                                <Button
+                                    HorizontalAlignment="Right"
+                                    Click="OnFlyoutOkClick"
+                                    Content="OK" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+
+                <!--  MenuFlyout  -->
+                <TextBlock
+                    Margin="0,20,0,4"
+                    Style="{StaticResource SectionHeaderStyle}"
+                    Text="MenuFlyout" />
+                <Button
+                    x:Name="DemoMenuFlyoutButton"
+                    HorizontalAlignment="Left"
+                    Content="Show MenuFlyout">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Click="OnCutClick" Text="Cut">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Cut" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Click="OnCopyClick" Text="Copy">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Copy" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Click="OnPasteClick" Text="Paste">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Paste" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <!--  TeachingTip  -->
+                <TextBlock
+                    Margin="0,20,0,4"
+                    Style="{StaticResource SectionHeaderStyle}"
+                    Text="TeachingTip" />
+                <TeachingTip
+                    x:Name="DemoTeachingTip"
+                    Title="Tip"
+                    IsLightDismissEnabled="True"
+                    Subtitle="This is a teaching tip" />
+                <Button
+                    x:Name="DemoTeachingTipButton"
+                    HorizontalAlignment="Left"
+                    Click="OnShowTeachingTipClick"
+                    Content="Show TeachingTip" />
+
+                <!--  Status  -->
+                <Border
+                    Margin="0,8,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontWeight="SemiBold" Text="Status" />
+                        <TextBlock
+                            x:Name="StatusText"
+                            Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  ═══ Right: Property Editors ═══  -->
+        <ScrollViewer
+            Grid.Column="1"
+            Padding="16,16"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="4">
+
+                <!--  ContentDialog Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="ContentDialog" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Title" />
+                <TextBox
+                    x:Name="DialogTitleBox"
+                    PlaceholderText="Title"
+                    Text="Dialog Title" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Content" />
+                <TextBox
+                    x:Name="DialogContentBox"
+                    Height="60"
+                    AcceptsReturn="True"
+                    PlaceholderText="Content"
+                    Text="This is the dialog content." />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PrimaryButtonText" />
+                <TextBox
+                    x:Name="DialogPrimaryBtnText"
+                    PlaceholderText="Primary button text"
+                    Text="OK" />
+
+                <!--  Flyout Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="Flyout" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Placement" />
+                <ComboBox
+                    x:Name="FlyoutPlacementCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnFlyoutPlacementChanged">
+                    <ComboBoxItem Content="Top" />
+                    <ComboBoxItem Content="Bottom" />
+                    <ComboBoxItem Content="Left" />
+                    <ComboBoxItem Content="Right" />
+                    <ComboBoxItem Content="Full" />
+                </ComboBox>
+
+                <!--  TeachingTip Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="TeachingTip" />
+                <ToggleSwitch
+                    x:Name="TeachingTipLightDismissSwitch"
+                    Header="IsLightDismissEnabled"
+                    IsOn="True"
+                    Toggled="OnTeachingTipLightDismissToggled" />
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </Grid>
+</Page>

@@ -1,0 +1,190 @@
+<Page
+    x:Class="gallery.SelectionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+        <Style x:Key="PropGroupStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  ═══ Left: Demo Area ═══  -->
+        <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="8">
+
+                <!--  ComboBox (static items)  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ComboBox" />
+                <ComboBox
+                    x:Name="DemoComboBox"
+                    MinWidth="200"
+                    HorizontalAlignment="Left"
+                    Header="Static Items"
+                    SelectionChanged="OnComboSelectionChanged">
+                    <ComboBoxItem Content="Item 1" />
+                    <ComboBoxItem Content="Item 2" />
+                    <ComboBoxItem Content="Item 3" />
+                    <ComboBoxItem Content="Item 4" />
+                    <ComboBoxItem Content="Item 5" />
+                </ComboBox>
+
+                <!--  Editable ComboBox  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="Editable ComboBox" />
+                <ComboBox
+                    x:Name="DemoEditableComboBox"
+                    MinWidth="200"
+                    HorizontalAlignment="Left"
+                    Header="Editable"
+                    IsEditable="True"
+                    PlaceholderText="Type or select a color..."
+                    SelectionChanged="OnComboSelectionChanged" />
+
+                <!--  ListBox  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ListBox" />
+                <ListBox
+                    x:Name="DemoListBox"
+                    MinWidth="180"
+                    MaxHeight="160"
+                    SelectionChanged="OnListBoxSelectionChanged" />
+
+                <!--  ListView  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ListView" />
+                <ListView
+                    x:Name="DemoListView"
+                    MinWidth="300"
+                    MaxHeight="180"
+                    SelectionChanged="OnListViewSelectionChanged" />
+
+                <!--  GridView  -->
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="GridView" />
+                <GridView
+                    x:Name="DemoGridView"
+                    MinWidth="300"
+                    MaxHeight="200"
+                    SelectionChanged="OnGridViewSelectionChanged" />
+
+                <!--  Status Text  -->
+                <Border
+                    Margin="0,12,0,0"
+                    Padding="0,12,0,0"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontWeight="SemiBold" Text="Selection Status" />
+                        <TextBlock
+                            x:Name="StatusText"
+                            Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  ═══ Right: Property Panel ═══  -->
+        <ScrollViewer
+            Grid.Column="1"
+            Padding="16,16"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="4">
+
+                <!--  ComboBox Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="ComboBox" />
+                <ToggleSwitch
+                    x:Name="ComboEditableToggle"
+                    Header="IsEditable"
+                    Toggled="OnComboEditableToggled" />
+
+                <!--  ListBox Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="ListBox" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Text="SelectionMode" />
+                <ComboBox
+                    x:Name="ListBoxSelectionMode"
+                    SelectedIndex="0"
+                    SelectionChanged="OnListBoxSelectionModeChanged">
+                    <ComboBoxItem Content="Single" />
+                    <ComboBoxItem Content="Multiple" />
+                    <ComboBoxItem Content="Extended" />
+                </ComboBox>
+                <TextBlock
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Text="Width" />
+                <Slider
+                    x:Name="ListBoxWidthSlider"
+                    Maximum="400"
+                    Minimum="60"
+                    StepFrequency="10"
+                    ValueChanged="OnListBoxWidthChanged"
+                    Value="180" />
+                <TextBlock
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Text="Height" />
+                <Slider
+                    x:Name="ListBoxHeightSlider"
+                    Maximum="400"
+                    Minimum="60"
+                    StepFrequency="10"
+                    ValueChanged="OnListBoxHeightChanged"
+                    Value="160" />
+
+                <!--  ListView Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="ListView" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Text="SelectionMode" />
+                <ComboBox
+                    x:Name="ListViewSelectionMode"
+                    SelectedIndex="0"
+                    SelectionChanged="OnListViewSelectionModeChanged">
+                    <ComboBoxItem Content="None" />
+                    <ComboBoxItem Content="Single" />
+                    <ComboBoxItem Content="Multiple" />
+                    <ComboBoxItem Content="Extended" />
+                </ComboBox>
+                <ToggleSwitch
+                    x:Name="ListViewItemClickToggle"
+                    Margin="0,8,0,0"
+                    Header="IsItemClickEnabled"
+                    Toggled="OnListViewItemClickToggled" />
+
+                <!--  GridView Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="GridView" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    FontSize="12"
+                    Text="SelectionMode" />
+                <ComboBox
+                    x:Name="GridViewSelectionMode"
+                    SelectedIndex="0"
+                    SelectionChanged="OnGridViewSelectionModeChanged">
+                    <ComboBoxItem Content="None" />
+                    <ComboBoxItem Content="Single" />
+                    <ComboBoxItem Content="Multiple" />
+                    <ComboBoxItem Content="Extended" />
+                </ComboBox>
+                <TextBlock
+                    x:Name="GridViewItemInfo"
+                    Margin="0,8,0,0"
+                    FontSize="12"
+                    Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

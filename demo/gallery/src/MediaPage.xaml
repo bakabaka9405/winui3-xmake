@@ -1,0 +1,179 @@
+<Page
+    x:Class="gallery.MediaPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid ColumnSpacing="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="320" />
+        </Grid.ColumnDefinitions>
+
+        <!--  ===== Left: Demo Area =====  -->
+        <ScrollViewer Grid.Column="0">
+            <StackPanel Margin="16" Spacing="24">
+
+                <!--  Image Block  -->
+                <Border
+                    Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Image" />
+
+                        <Border
+                            Padding="4"
+                            HorizontalAlignment="Left"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="2">
+                            <Grid>
+                                <Image
+                                    x:Name="DemoImage"
+                                    Width="200"
+                                    Height="200"
+                                    Stretch="Uniform" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="Image Placeholder" />
+                            </Grid>
+                        </Border>
+
+                    </StackPanel>
+                </Border>
+
+                <!--  PersonPicture Block  -->
+                <Border
+                    Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="PersonPicture" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Initials Mode (无 ProfilePicture)" />
+                        <PersonPicture
+                            x:Name="DemoPersonPicture"
+                            Width="80"
+                            Height="80"
+                            DisplayName="张三" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="ProfilePicture Mode" />
+                        <PersonPicture
+                            x:Name="DemoPersonPicProfile"
+                            Width="80"
+                            Height="80" />
+
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--  ===== Right: Property Editors =====  -->
+        <ScrollViewer Grid.Column="1">
+            <StackPanel Margin="0,16,16,16" Spacing="20">
+
+                <!--  Image Properties  -->
+                <Border
+                    Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Image Settings" />
+
+                        <TextBlock
+                            x:Name="ImageWidthLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Width: 200" />
+                        <Slider
+                            x:Name="ImageWidthSlider"
+                            Maximum="300"
+                            Minimum="50"
+                            StepFrequency="1"
+                            ValueChanged="ImageWidthSlider_ValueChanged"
+                            Value="200" />
+
+                        <TextBlock
+                            x:Name="ImageHeightLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Height: 200" />
+                        <Slider
+                            x:Name="ImageHeightSlider"
+                            Maximum="300"
+                            Minimum="50"
+                            StepFrequency="1"
+                            ValueChanged="ImageHeightSlider_ValueChanged"
+                            Value="200" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Stretch" />
+                        <ComboBox
+                            x:Name="ImageStretchCombo"
+                            SelectedIndex="2"
+                            SelectionChanged="ImageStretchCombo_SelectionChanged">
+                            <ComboBoxItem Content="None" />
+                            <ComboBoxItem Content="Fill" />
+                            <ComboBoxItem Content="Uniform" />
+                            <ComboBoxItem Content="UniformToFill" />
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <!--  PersonPicture Properties  -->
+                <Border
+                    Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="PersonPicture Settings" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="DisplayName" />
+                        <TextBox
+                            x:Name="DisplayNameBox"
+                            Text="张三"
+                            TextChanged="DisplayNameBox_TextChanged" />
+
+                        <TextBlock
+                            x:Name="PersonWidthLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Width: 80" />
+                        <Slider
+                            x:Name="PersonWidthSlider"
+                            Maximum="200"
+                            Minimum="40"
+                            StepFrequency="1"
+                            ValueChanged="PersonWidthSlider_ValueChanged"
+                            Value="80" />
+
+                        <TextBlock
+                            x:Name="PersonHeightLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Height: 80" />
+                        <Slider
+                            x:Name="PersonHeightSlider"
+                            Maximum="200"
+                            Minimum="40"
+                            StepFrequency="1"
+                            ValueChanged="PersonHeightSlider_ValueChanged"
+                            Value="80" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="IsGroup" />
+                        <ToggleSwitch
+                            x:Name="IsGroupSwitch"
+                            IsOn="False"
+                            Toggled="IsGroupSwitch_Toggled" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+</Page>

@@ -1,0 +1,7 @@
+namespace gallery
+{
+    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider
+    {
+        XamlMetaDataProvider();
+    }
+}

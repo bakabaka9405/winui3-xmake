@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="gallery.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel Padding="32" Spacing="16">
+
+            <!--  Title  -->
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="WinUI 3 Gallery" />
+
+            <!--  Subtitle  -->
+            <TextBlock
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="Explore WinUI 3 controls with live parameter modification"
+                TextWrapping="Wrap" />
+
+            <!--  Quick Start Section  -->
+            <TextBlock
+                Margin="0,16,0,0"
+                Style="{StaticResource SubheaderTextBlockStyle}"
+                Text="Quick Start" />
+
+            <TextBlock
+                Style="{StaticResource BodyTextBlockStyle}"
+                Text="Use the navigation pane on the left to explore different control categories. Each page provides live controls with interactive property editors on the right side."
+                TextWrapping="Wrap" />
+
+            <TextBlock
+                Margin="0,12,0,0"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="Available Pages" />
+
+            <TextBlock Style="{StaticResource CaptionTextBlockStyle}">
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Buttons" /><Run Text=" — Button, ToggleButton, SplitButton, CheckBox, RadioButtons, ToggleSwitch, and more" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Text" /><Run Text=" — TextBox, PasswordBox, NumberBox, RichEditBox, AutoSuggestBox" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Selection" /><Run Text=" — ComboBox, ListBox, ListView, GridView" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Navigation" /><Run Text=" — TabView, PipsPager" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Feedback" /><Run Text=" — ProgressBar, ProgressRing, InfoBar" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Dialogs" /><Run Text=" — ContentDialog, Flyout, MenuFlyout, TeachingTip" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Media" /><Run Text=" — Image, PersonPicture" />
+                <LineBreak />
+                <Run Text="• " /><Run FontWeight="SemiBold" Text="Menus" /><Run Text=" — MenuBar, CommandBar" />
+            </TextBlock>
+
+            <!--  About Section  -->
+            <TextBlock
+                Margin="0,16,0,0"
+                Style="{StaticResource SubheaderTextBlockStyle}"
+                Text="About" />
+
+            <TextBlock
+                Style="{StaticResource BodyTextBlockStyle}"
+                Text="The WinUI 3 Gallery demonstrates the core controls and features of the Windows UI Library 3. Each page provides live property editing capabilities for real-time visual feedback."
+                TextWrapping="Wrap" />
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

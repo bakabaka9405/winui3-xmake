@@ -1,0 +1,8 @@
+namespace gallery
+{
+    [default_interface]
+    runtimeclass SelectionPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        SelectionPage();
+    }
+}

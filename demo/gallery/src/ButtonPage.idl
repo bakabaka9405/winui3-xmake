@@ -1,0 +1,8 @@
+namespace gallery
+{
+    [default_interface]
+    runtimeclass ButtonPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        ButtonPage();
+    }
+}

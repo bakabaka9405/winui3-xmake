@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="gallery.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+    <NavigationView
+        x:Name="NavView"
+        PaneDisplayMode="LeftCompact"
+        IsSettingsVisible="False"
+        ItemInvoked="NavView_ItemInvoked">
+        <NavigationView.MenuItems>
+            <NavigationViewItem Icon="Home"    Content="Home"           Tag="Home" />
+            <NavigationViewItem Icon="TouchPointer" Content="Buttons"   Tag="Buttons" />
+            <NavigationViewItem Icon="Font"    Content="Text"           Tag="Text" />
+            <NavigationViewItem Icon="List"    Content="Selection"      Tag="Selection" />
+            <NavigationViewItem Icon="Map"     Content="Navigation"     Tag="Navigation" />
+            <NavigationViewItem Icon="ReportHacked" Content="Feedback"  Tag="Feedback" />
+            <NavigationViewItem Icon="Comment" Content="Dialogs"        Tag="Dialogs" />
+            <NavigationViewItem Icon="Camera"  Content="Media"          Tag="Media" />
+            <NavigationViewItem Icon="Setting" Content="Menus"          Tag="Menus" />
+        </NavigationView.MenuItems>
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Window>
