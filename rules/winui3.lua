@@ -82,6 +82,14 @@ rule("winui3.app")
                 "--src-dir", path.translate(src_dir),
                 "--shared-projection-dir", path.translate(shared_projection_dir),
             }
+
+            -- 若设置了自定义 XAML 编译器路径，则传递给 Python 脚本
+            local xaml_compiler_path = target:values("winui3.xaml_compiler_path")
+            if xaml_compiler_path then
+                table.insert(args, "--xaml-compiler-path")
+                table.insert(args, path.translate(xaml_compiler_path))
+            end
+
             print("  " .. py .. " " .. table.concat(args, " "))
             os.runv(py, args)
             print("=== Code Generation Complete ===\n")

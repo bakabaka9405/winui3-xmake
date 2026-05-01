@@ -796,6 +796,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Shared output directory for platform, WebView2, and Windows App SDK C++/WinRT projection headers.",
     )
+    parser.add_argument(
+        "--xaml-compiler-path",
+        type=Path,
+        default=None,
+        help="Custom directory containing XamlCompiler.exe. Only the compiler executable is overridden; GenXbf native DLLs still come from the NuGet package.",
+    )
     return parser.parse_args(argv)
 
 
@@ -843,9 +849,12 @@ def main(argv: list[str] | None = None) -> int:
         midl_exe = buildtools_bin / "midl.exe"
         mdmerge_exe = buildtools_bin / "mdmerge.exe"
         xaml_compiler = winui_pkg / "tools" / "net472" / "XamlCompiler.exe"
-        genxbf_dir = (
-            winui_pkg / "tools"
-        )  # XamlCompiler finds GenXbf.dll in arch subdirectories
+        genxbf_dir = winui_pkg / "tools"
+
+        # 若用户提供了自定义 XAML 编译器路径，则仅覆盖编译器可执行文件
+        # GenXbf 本地 DLL 仍从 NuGet 包加载，与编译器可执行文件无关
+        if args.xaml_compiler_path:
+            xaml_compiler = absolute_path(args.xaml_compiler_path) / "XamlCompiler.exe"
         webview2_winmd = (
             root
             / "microsoft.web.webview2"
