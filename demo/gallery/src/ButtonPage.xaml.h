@@ -6,7 +6,7 @@ namespace winrt::gallery::implementation {
 struct ButtonPage : ButtonPageT<ButtonPage> {
     ButtonPage();
 
-    // ── Control event handlers ──
+    //  Control event handlers 
     void DemoButton_Click(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -15,7 +15,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── Button property editors ──
+    //  Button property editors 
     void EditorBtnContent_TextChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
@@ -32,7 +32,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    // ── ToggleButton property editors ──
+    //  ToggleButton property editors 
     void EditorToggleContent_TextChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
@@ -41,7 +41,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── SplitButton property editors ──
+    //  SplitButton property editors 
     void EditorSplitWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -54,7 +54,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── DropDownButton property editors ──
+    //  DropDownButton property editors 
     void EditorDropWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -67,7 +67,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── RepeatButton property editors ──
+    //  RepeatButton property editors 
     void EditorRepeatWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -80,7 +80,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── HyperlinkButton property editors ──
+    //  HyperlinkButton property editors 
     void EditorHyperlinkWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -93,7 +93,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── CheckBox property editors ──
+    //  CheckBox property editors 
     void EditorCheckContent_TextChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
@@ -106,7 +106,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── RadioButtons property editors ──
+    //  RadioButtons property editors 
     void EditorRadioWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -119,7 +119,7 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    // ── ToggleSwitch property editors ──
+    //  ToggleSwitch property editors 
     void EditorSwitchHeader_TextChanged(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);

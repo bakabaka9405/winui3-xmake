@@ -18,7 +18,7 @@ FEATURE_CONTROL_FLAGS = (
     "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen"
 )
 
-# ── 输出控制 ───────────────────────────────────────────────────────
+# 输出控制
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
 _verbose: bool = False
 
@@ -107,7 +107,7 @@ APP_SDK_WINMDS_IXP = [
 ]
 
 
-# ── 文件发现基础设施 ───────────────────────────────────────────────
+# 文件发现基础设施
 # 以下函数用于自动发现 src/ 中的源文件，替代硬编码的文件列表。
 # 支持任意数量的 .xaml、.idl、.winmd 文件，无需修改构建脚本。
 

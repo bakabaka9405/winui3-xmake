@@ -6,7 +6,7 @@ namespace winrt::gallery::implementation {
 struct TextPage : TextPageT<TextPage> {
 	TextPage();
 
-	// ── TextBox property editor handlers ──
+	//  TextBox property editor handlers 
 	void OnTextBoxTextChanged(
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
@@ -23,7 +23,7 @@ struct TextPage : TextPageT<TextPage> {
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-	// ── PasswordBox property editor handlers ──
+	//  PasswordBox property editor handlers 
 	void OnPasswordRevealModeChanged(
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
@@ -32,7 +32,7 @@ struct TextPage : TextPageT<TextPage> {
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-	// ── NumberBox property editor handlers ──
+	//  NumberBox property editor handlers 
 	void OnNumberBoxValueChanged(
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
@@ -41,7 +41,7 @@ struct TextPage : TextPageT<TextPage> {
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-	// ── RichEditBox property editor handlers ──
+	//  RichEditBox property editor handlers 
 	void OnRichEditReadOnlyToggled(
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -50,7 +50,7 @@ struct TextPage : TextPageT<TextPage> {
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-	// ── AutoSuggestBox property editor handler ──
+	//  AutoSuggestBox property editor handler 
 	void OnAutoSuggestUpdateToggled(
 		Windows::Foundation::IInspectable const& sender,
 		Microsoft::UI::Xaml::RoutedEventArgs const& args);

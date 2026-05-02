@@ -6,7 +6,7 @@ namespace winrt::gallery::implementation {
 struct FeedbackPage : FeedbackPageT<FeedbackPage> {
     FeedbackPage();
 
-    // ── ProgressBar handlers ──
+    //  ProgressBar handlers 
     void ProgressBarValueSlider_ValueChanged(
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const&);
@@ -23,12 +23,12 @@ struct FeedbackPage : FeedbackPageT<FeedbackPage> {
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::RoutedEventArgs const&);
 
-    // ── ProgressRing handlers ──
+    //  ProgressRing handlers 
     void ProgressRingActiveToggle_Toggled(
         Windows::Foundation::IInspectable const&,
         Microsoft::UI::Xaml::RoutedEventArgs const&);
 
-    // ── InfoBar handlers ──
+    //  InfoBar handlers 
     void InfoBarAction_Click(
         Windows::Foundation::IInspectable const&,
         Windows::Foundation::IInspectable const&);

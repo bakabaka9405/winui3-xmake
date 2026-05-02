@@ -8,7 +8,7 @@
 namespace winrt::gallery::implementation {
 MainWindow::MainWindow() {
     InitializeComponent();
-    this->AppWindow().Resize({ 1000, 700 });
+    this->AppWindow().Resize({ 1600, 900 });
     this->Title(L"WinUI 3 Gallery");
     ContentFrame().Navigate(winrt::xaml_typename<gallery::HomePage>());
 }
