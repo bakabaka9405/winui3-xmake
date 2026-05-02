@@ -99,7 +99,7 @@ rule("winui3.app")
                 os.files(path.join(src_dir, "**.xaml")),
                 os.files(path.join(src_dir, "**.xaml.h")),
                 os.files(path.join(src_dir, "**.idl")),
-                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "rules", "winui3_rules.lua") }
+                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "rules", "winui3.lua") }
             ),
         })
     end)
