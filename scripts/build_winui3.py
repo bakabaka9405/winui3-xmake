@@ -9,102 +9,29 @@ import os
 import shutil
 import subprocess
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-
-FEATURE_CONTROL_FLAGS = (
-    "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen"
+from plat_info import (
+    BUILD_TOOLS_BIN_VERSION,
+    WINDOWS_SDK_ROOT,
+    WINDOWS_SDK_VERSION,
+    BuildError,
+    collect_appsdk_winmds,
+    collect_platform_winmds,
+    find_foundation_metadata_dir,
+    native_path,
+    nuget_root,
+    path_env_with_vc,
+    platform_xml_path,
+    require_dir,
+    require_file,
+    vc_bin_path,
 )
 
 # 输出控制
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
 _verbose: bool = False
-
-
-def _discover_winsdk_root() -> Path:
-    """Discover Windows SDK root from environment or registry."""
-    env = os.environ.get("WindowsSdkDir")
-    if env:
-        return Path(env)
-    try:
-        import winreg
-
-        key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"SOFTWARE\Microsoft\Windows Kits\Installed Roots",
-        )
-        value, _ = winreg.QueryValueEx(key, "KitsRoot10")
-        winreg.CloseKey(key)
-        return Path(value)
-    except OSError:
-        pass
-    return Path(r"C:\Program Files (x86)\Windows Kits\10")
-
-
-def _discover_winsdk_version(sdk_root: Path) -> str:
-    """Discover highest available UAP SDK version."""
-    uap_dir = sdk_root / "Platforms" / "UAP"
-    if not uap_dir.is_dir():
-        return "10.0.26100.0"
-    versions = sorted(d.name for d in uap_dir.iterdir() if d.is_dir())
-    return versions[-1] if versions else "10.0.26100.0"
-
-
-def _discover_vc_bin() -> Path:
-    """Discover VC toolchain binary directory."""
-    vctools = os.environ.get("VCToolsInstallDir")
-    if vctools:
-        return Path(vctools) / "bin" / "HostX64" / "x64"
-    # Try common locations
-    candidates = [
-        Path(r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC"),
-        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC"),
-        Path(
-            r"C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC"
-        ),
-        Path(r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC"),
-    ]
-    for base in candidates:
-        if base.is_dir():
-            versions = sorted(d.name for d in base.iterdir() if d.is_dir())
-            if versions:
-                return base / versions[-1] / "bin" / "HostX64" / "x64"
-    return Path(
-        r"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717\bin\HostX64\x64"
-    )
-
-
-WINDOWS_SDK_ROOT = _discover_winsdk_root()
-WINDOWS_SDK_VERSION = _discover_winsdk_version(WINDOWS_SDK_ROOT)
-BUILD_TOOLS_BIN_VERSION = "10.0.28000.0"
-DEFAULT_VC_BIN = _discover_vc_bin()
-# WinAppSDK 1.8+ splits WinMDs across Foundation, WinUI, and InteractiveExperiences sub-packages
-APP_SDK_WINMDS_FOUNDATION = [
-    "Microsoft.Windows.ApplicationModel.DynamicDependency",
-    "Microsoft.Windows.ApplicationModel.Resources",
-    "Microsoft.Windows.ApplicationModel.WindowsAppRuntime",
-    "Microsoft.Windows.AppLifecycle",
-    "Microsoft.Windows.AppNotifications",
-    "Microsoft.Windows.AppNotifications.Builder",
-    "Microsoft.Windows.Foundation",
-    "Microsoft.Windows.Globalization",
-    "Microsoft.Windows.Management.Deployment",
-    "Microsoft.Windows.PushNotifications",
-    "Microsoft.Windows.Security.AccessControl",
-    "Microsoft.Windows.System",
-    "Microsoft.Windows.System.Power",
-]
-APP_SDK_WINMDS_WINUI = [
-    "Microsoft.UI.Text",
-    "Microsoft.UI.Xaml",
-]
-APP_SDK_WINMDS_IXP = [
-    "Microsoft.Foundation",
-    "Microsoft.Graphics",
-    "Microsoft.UI",
-]
 
 
 # 文件发现基础设施
@@ -201,38 +128,8 @@ def idl_to_winmd_path(idl_path: Path, base_dir: Path, out_dir: Path) -> Path:
         return out_dir / f"{idl_path.stem}.winmd"
 
 
-class BuildError(RuntimeError):
-    """Raised for user-facing build failures."""
-
-
-def native_path(path: str | Path) -> str:
-    return os.path.normpath(os.fspath(path)).replace("/", "\\")
-
-
 def absolute_path(path: Path) -> Path:
     return path.expanduser().resolve(strict=False)
-
-
-def parse_version(version: str) -> tuple[int, ...]:
-    parts: list[int] = []
-    for part in version.split("."):
-        try:
-            parts.append(int(part))
-        except ValueError:
-            parts.append(-1)
-    return tuple(parts)
-
-
-def require_file(path: Path, label: str) -> Path:
-    if not path.is_file():
-        raise BuildError(f"{label} does not exist: {native_path(path)}")
-    return path
-
-
-def require_dir(path: Path, label: str) -> Path:
-    if not path.is_dir():
-        raise BuildError(f"{label} does not exist: {native_path(path)}")
-    return path
 
 
 def print_phase(title: str) -> None:
@@ -359,130 +256,6 @@ def run_command(
     )
 
 
-def discover_winsdk_version(winsdk_root: Path) -> str:
-    uap_dir = require_dir(
-        winsdk_root / "Platforms" / "UAP", "Windows SDK UAP platform directory"
-    )
-    versions = [path.name for path in uap_dir.iterdir() if path.is_dir()]
-    if not versions:
-        raise BuildError(
-            f"no Windows SDK UAP versions found under: {native_path(uap_dir)}"
-        )
-    return max(versions, key=parse_version)
-
-
-def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, Path]:
-    platform_xml = (
-        winsdk_root / "Platforms" / "UAP" / requested_version / "Platform.xml"
-    )
-    if platform_xml.is_file():
-        return requested_version, platform_xml
-
-    detected_version = discover_winsdk_version(winsdk_root)
-    detected_xml = winsdk_root / "Platforms" / "UAP" / detected_version / "Platform.xml"
-    return detected_version, require_file(detected_xml, "Windows SDK Platform.xml")
-
-
-def parse_platform_contracts(platform_xml: Path) -> list[tuple[str, str]]:
-    try:
-        root = ET.parse(platform_xml).getroot()
-    except ET.ParseError as exc:
-        raise BuildError(f"failed to parse {native_path(platform_xml)}: {exc}") from exc
-    except OSError as exc:
-        raise BuildError(f"failed to read {native_path(platform_xml)}: {exc}") from exc
-
-    contracts: list[tuple[str, str]] = []
-    for element in root.iter():
-        if element.tag.rsplit("}", 1)[-1] != "ApiContract":
-            continue
-
-        name = element.attrib.get("name")
-        version = element.attrib.get("version")
-        if not name or not version:
-            raise BuildError(
-                f"ApiContract in {native_path(platform_xml)} is missing name or version"
-            )
-        contracts.append((name, version))
-
-    if not contracts:
-        raise BuildError(f"no ApiContract entries found in {native_path(platform_xml)}")
-    return contracts
-
-
-def collect_platform_winmds(winsdk_root: Path, winsdk_version: str) -> list[Path]:
-    _, platform_xml = platform_xml_path(winsdk_root, winsdk_version)
-    contracts = parse_platform_contracts(platform_xml)
-    winmds: list[Path] = []
-
-    for contract_name, contract_version in contracts:
-        winmd = (
-            winsdk_root
-            / "References"
-            / winsdk_version
-            / contract_name
-            / contract_version
-            / f"{contract_name}.winmd"
-        )
-        winmds.append(require_file(winmd, f"platform WinMD {contract_name}"))
-
-    return winmds
-
-
-def collect_appsdk_winmds(
-    foundation_pkg: Path,
-    winui_pkg: Path,
-    ixp_pkg: Path,
-) -> list[Path]:
-    """Collect WinMD files from WinAppSDK 1.8+ sub-package metadata directories."""
-    winmds: list[Path] = []
-
-    # Foundation metadata (root-level)
-    foundation_meta = require_dir(
-        foundation_pkg / "metadata", "Foundation metadata directory"
-    )
-    for name in APP_SDK_WINMDS_FOUNDATION:
-        candidate = foundation_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"Foundation WinMD {name}"))
-
-    # WinUI metadata (root-level)
-    winui_meta = require_dir(winui_pkg / "metadata", "WinUI metadata directory")
-    for name in APP_SDK_WINMDS_WINUI:
-        candidate = winui_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"WinUI WinMD {name}"))
-
-    # InteractiveExperiences metadata (versioned sub-directory)
-    ixp_meta_root = require_dir(
-        ixp_pkg / "metadata", "InteractiveExperiences metadata directory"
-    )
-    ixp_versions = sorted(d.name for d in ixp_meta_root.iterdir() if d.is_dir())
-    if not ixp_versions:
-        raise BuildError(f"no version sub-directories in: {native_path(ixp_meta_root)}")
-    ixp_meta = require_dir(
-        ixp_meta_root / ixp_versions[-1], "InteractiveExperiences version metadata"
-    )
-    for name in APP_SDK_WINMDS_IXP:
-        candidate = ixp_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"InteractiveExperiences WinMD {name}"))
-
-    return winmds
-
-
-def find_foundation_metadata_dir(winsdk_root: Path, winsdk_version: str) -> Path:
-    foundation_root = require_dir(
-        winsdk_root
-        / "References"
-        / winsdk_version
-        / "Windows.Foundation.FoundationContract",
-        "Windows.Foundation.FoundationContract metadata directory",
-    )
-    versions = [path for path in foundation_root.iterdir() if path.is_dir()]
-    if not versions:
-        raise BuildError(
-            f"no FoundationContract versions found under: {native_path(foundation_root)}"
-        )
-    return max(versions, key=lambda path: parse_version(path.name))
-
-
 def unique_parent_dirs(paths: list[Path]) -> list[Path]:
     seen: set[str] = set()
     result: list[Path] = []
@@ -496,32 +269,6 @@ def unique_parent_dirs(paths: list[Path]) -> list[Path]:
         result.append(parent)
 
     return result
-
-
-def nuget_root() -> Path:
-    user_profile = os.environ.get("USERPROFILE")
-    if user_profile:
-        return Path(user_profile) / ".nuget" / "packages"
-    return Path(r"C:\Users\WanYa\.nuget\packages")
-
-
-def vc_bin_path() -> Path:
-    tools_dir = os.environ.get("VCToolsInstallDir")
-    if tools_dir:
-        return Path(tools_dir) / "bin" / "HostX64" / "x64"
-    return DEFAULT_VC_BIN
-
-
-def path_env_with_vc(vc_bin: Path) -> dict[str, str]:
-    env = os.environ.copy()
-    env["PATH"] = f"{native_path(vc_bin)};{env.get('PATH', '')}"
-
-    if shutil.which("cl.exe", path=env["PATH"]) is None:
-        raise BuildError(
-            f"cl.exe was not found after adding VC tools directory to PATH: {native_path(vc_bin)}"
-        )
-
-    return env
 
 
 def msbuild_item(path: Path, dependent_upon: Path | None = None) -> dict[str, str]:
@@ -571,7 +318,7 @@ def build_xaml_json(
         "OutputPath": native_path(generated_dir),
         "RootNamespace": namespace,
         "PrecompiledHeaderFile": "pch.h",
-        "FeatureControlFlags": FEATURE_CONTROL_FLAGS,
+        "FeatureControlFlags": "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen",
         "ReferenceAssemblies": [msbuild_item(path) for path in ref_winmds],
         "ReferenceAssemblyPaths": [],
         "TargetPlatformMinVersion": winsdk_version,
@@ -961,7 +708,6 @@ def main(argv: list[str] | None = None) -> int:
         for idl_path in idl_files:
             # 保留相对于 src_dir 的目录结构生成 winmd，避免子目录同名 IDL 冲突
             out_winmd = idl_to_winmd_path(idl_path, src_dir, winmd_unmerged_dir)
-            # 确保输出子目录存在
             out_winmd.parent.mkdir(parents=True, exist_ok=True)
             run_midl(
                 midl_exe=midl_exe,
