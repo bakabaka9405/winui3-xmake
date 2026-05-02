@@ -57,6 +57,7 @@ rule("winui3.app")
         --  Link libraries 
         target:add("links", path.translate(NUGET_FOUNDATION .. "/lib/native/x64/Microsoft.WindowsAppRuntime.Bootstrap.lib"))
         target:add("links", "windowsapp")
+        target:add("links", "user32")
         target:add("ldflags", "/SUBSYSTEM:WINDOWS")
     end)
 
