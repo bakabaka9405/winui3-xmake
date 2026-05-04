@@ -18,11 +18,7 @@ from pathlib import Path
 
 class BuildError(RuntimeError):
     """面向用户的构建失败异常。"""
-
-
-def native_path(path: str | Path) -> str:
-    """将路径转换为 Windows 原生格式（反斜杠分隔）。"""
-    return str(path)
+    pass
 
 
 def parse_version(version: str) -> tuple[int, ...]:
@@ -33,14 +29,14 @@ def parse_version(version: str) -> tuple[int, ...]:
 def require_file(path: Path, label: str) -> Path:
     """断言 path 为已存在的文件，否则抛出 BuildError。"""
     if not path.is_file():
-        raise BuildError(f"{label} does not exist: {native_path(path)}")
+        raise BuildError(f"{label} does not exist: {str(path)}")
     return path
 
 
 def require_dir(path: Path, label: str) -> Path:
     """断言 path 为已存在的目录，否则抛出 BuildError。"""
     if not path.is_dir():
-        raise BuildError(f"{label} does not exist: {native_path(path)}")
+        raise BuildError(f"{label} does not exist: {str(path)}")
     return path
 
 
@@ -67,13 +63,16 @@ def _discover_winsdk_root() -> Path:
     return Path(r"C:\Program Files (x86)\Windows Kits\10")
 
 
-def _discover_winsdk_version(sdk_root: Path) -> str:
-    """发现可用的最高 UAP SDK 版本。"""
-    uap_dir = sdk_root / "Platforms" / "UAP"
-    if not uap_dir.is_dir():
-        return "10.0.26100.0"
-    versions = sorted(d.name for d in uap_dir.iterdir() if d.is_dir())
-    return versions[-1] if versions else "10.0.26100.0"
+
+def discover_winsdk_version(winsdk_root: Path) -> str:
+    """发现可用的最高 Windows SDK UAP 版本（带目录校验）。"""
+    uap_dir = require_dir(
+        winsdk_root / "Platforms" / "UAP", "Windows SDK UAP platform directory"
+    )
+    versions = [path.name for path in uap_dir.iterdir() if path.is_dir()]
+    if not versions:
+        raise BuildError(f"no Windows SDK UAP versions found under: {str(uap_dir)}")
+    return max(versions, key=parse_version)
 
 
 def _discover_vc_bin() -> Path:
@@ -102,7 +101,10 @@ def _discover_vc_bin() -> Path:
 # ── 模块级预计算常量 ──────────────────────────────────────────
 
 WINDOWS_SDK_ROOT = _discover_winsdk_root()
-WINDOWS_SDK_VERSION = _discover_winsdk_version(WINDOWS_SDK_ROOT)
+try:
+    WINDOWS_SDK_VERSION = discover_winsdk_version(WINDOWS_SDK_ROOT)
+except BuildError:
+    WINDOWS_SDK_VERSION = "10.0.26100.0"
 BUILD_TOOLS_BIN_VERSION = "10.0.28000.0"
 DEFAULT_VC_BIN = _discover_vc_bin()
 
@@ -136,18 +138,6 @@ APP_SDK_WINMDS_IXP = [
 # ── SDK 版本发现、Platform.xml 解析与 WinMD 收集 ──────────────
 
 
-def discover_winsdk_version(winsdk_root: Path) -> str:
-    """公开的 Windows SDK 版本发现函数（带目录校验）。"""
-    uap_dir = require_dir(
-        winsdk_root / "Platforms" / "UAP", "Windows SDK UAP platform directory"
-    )
-    versions = [path.name for path in uap_dir.iterdir() if path.is_dir()]
-    if not versions:
-        raise BuildError(
-            f"no Windows SDK UAP versions found under: {native_path(uap_dir)}"
-        )
-    return max(versions, key=parse_version)
-
 
 def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, Path]:
     """定位 Platform.xml 路径，若请求版本不存在则回退至已安装的最高版本。"""
@@ -167,9 +157,9 @@ def parse_platform_contracts(platform_xml: Path) -> list[tuple[str, str]]:
     try:
         root = ET.parse(platform_xml).getroot()
     except ET.ParseError as exc:
-        raise BuildError(f"failed to parse {native_path(platform_xml)}: {exc}") from exc
+        raise BuildError(f"failed to parse {str(platform_xml)}: {exc}") from exc
     except OSError as exc:
-        raise BuildError(f"failed to read {native_path(platform_xml)}: {exc}") from exc
+        raise BuildError(f"failed to read {str(platform_xml)}: {exc}") from exc
 
     contracts: list[tuple[str, str]] = []
     for element in root.iter():
@@ -180,12 +170,12 @@ def parse_platform_contracts(platform_xml: Path) -> list[tuple[str, str]]:
         version = element.attrib.get("version")
         if not name or not version:
             raise BuildError(
-                f"ApiContract in {native_path(platform_xml)} is missing name or version"
+                f"ApiContract in {str(platform_xml)} is missing name or version"
             )
         contracts.append((name, version))
 
     if not contracts:
-        raise BuildError(f"no ApiContract entries found in {native_path(platform_xml)}")
+        raise BuildError(f"no ApiContract entries found in {str(platform_xml)}")
     return contracts
 
 
@@ -237,7 +227,7 @@ def collect_appsdk_winmds(
     )
     ixp_versions = sorted(d.name for d in ixp_meta_root.iterdir() if d.is_dir())
     if not ixp_versions:
-        raise BuildError(f"no version sub-directories in: {native_path(ixp_meta_root)}")
+        raise BuildError(f"no version sub-directories in: {str(ixp_meta_root)}")
     ixp_meta = require_dir(
         ixp_meta_root / ixp_versions[-1], "InteractiveExperiences version metadata"
     )
@@ -260,7 +250,7 @@ def find_foundation_metadata_dir(winsdk_root: Path, winsdk_version: str) -> Path
     versions = [path for path in foundation_root.iterdir() if path.is_dir()]
     if not versions:
         raise BuildError(
-            f"no FoundationContract versions found under: {native_path(foundation_root)}"
+            f"no FoundationContract versions found under: {str(foundation_root)}"
         )
     return max(versions, key=lambda path: parse_version(path.name))
 
@@ -287,11 +277,11 @@ def vc_bin_path() -> Path:
 def path_env_with_vc(vc_bin: Path) -> dict[str, str]:
     """构建包含 MSVC 工具链路径的 PATH 环境变量字典，并校验 cl.exe 可达。"""
     env = os.environ.copy()
-    env["PATH"] = f"{native_path(vc_bin)};{env.get('PATH', '')}"
+    env["PATH"] = f"{str(vc_bin)};{env.get('PATH', '')}"
 
     if shutil.which("cl.exe", path=env["PATH"]) is None:
         raise BuildError(
-            f"cl.exe was not found after adding VC tools directory to PATH: {native_path(vc_bin)}"
+            f"cl.exe was not found after adding VC tools directory to PATH: {str(vc_bin)}"
         )
 
     return env

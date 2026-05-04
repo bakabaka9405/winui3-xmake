@@ -106,7 +106,6 @@ rule("winui3.app")
     after_build(function (target)
         local outdir = target:targetdir()
 
-        -- Copy Bootstrap DLL
         local dll_src = (NUGET_FOUNDATION .. "/runtimes/win-x64/native/Microsoft.WindowsAppRuntime.Bootstrap.dll"):gsub("/", "\\")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)

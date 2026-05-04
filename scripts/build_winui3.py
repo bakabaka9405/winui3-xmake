@@ -20,7 +20,6 @@ from plat_info import (
     collect_appsdk_winmds,
     collect_platform_winmds,
     find_foundation_metadata_dir,
-    native_path,
     nuget_root,
     path_env_with_vc,
     platform_xml_path,
@@ -38,45 +37,6 @@ _verbose: bool = False
 # 以下函数用于自动发现 src/ 中的源文件，替代硬编码的文件列表。
 # 支持任意数量的 .xaml、.idl、.winmd 文件，无需修改构建脚本。
 
-# 按约定：应用程序入口 XAML 文件命名为 App.xaml
-_APP_XAML_NAME: str = "App.xaml"
-
-
-def discover_xaml_files(src_dir: Path) -> list[Path]:
-    """递归发现 src_dir 及其子目录中所有 .xaml 文件，按路径排序。"""
-    return sorted(src_dir.rglob("*.xaml"), key=lambda p: str(p))
-
-
-def discover_idl_files(src_dir: Path) -> list[Path]:
-    """递归发现 src_dir 及其子目录中所有 .idl 文件，按路径排序。"""
-    return sorted(src_dir.rglob("*.idl"), key=lambda p: str(p))
-
-
-def discover_winmd_files(winmd_dir: Path) -> list[Path]:
-    """递归发现 winmd_dir 及其子目录中所有 .winmd 文件。若目录不存在则返回空列表。"""
-    if not winmd_dir.is_dir():
-        return []
-    return sorted(winmd_dir.rglob("*.winmd"), key=lambda p: str(p))
-
-
-def xaml_to_header(xaml_path: Path) -> Path:
-    """由 .xaml 路径推导对应的 .h 头文件路径（例如 App.xaml → App.xaml.h）。"""
-    return Path(os.fspath(xaml_path) + ".h")
-
-
-def classify_xaml(
-    xaml_files: list[Path], src_dir: Path
-) -> tuple[list[Path], list[Path]]:
-    """将 XAML 文件分为 (应用程序入口, 页面) 两组。
-
-    仅 src_dir 根目录下的 App.xaml 被视为应用程序入口；
-    子目录中的 App.xaml 按普通页面处理。
-    """
-    app_candidate = src_dir / _APP_XAML_NAME
-    apps = [p for p in xaml_files if p == app_candidate]
-    pages = [p for p in xaml_files if p != app_candidate]
-    return apps, pages
-
 
 def clean_stale_files(directory: Path, pattern: str, *, required: bool = False) -> None:
     """清理目录中匹配 pattern 的陈旧生成文件，确保增量构建不会使用旧产物。
@@ -92,10 +52,10 @@ def clean_stale_files(directory: Path, pattern: str, *, required: bool = False) 
         try:
             stale.unlink()
         except OSError as exc:
-            msg = f"failed to remove stale file {native_path(stale)}: {exc}"
+            msg = f"failed to remove stale file {str(stale)}: {exc}"
             if required:
                 raise BuildError(msg) from exc
-            print(f"mwarning: {msg}")
+            print(f"warning: {msg}")
 
 
 def remove_stale_projection_dir(directory: Path) -> None:
@@ -106,7 +66,7 @@ def remove_stale_projection_dir(directory: Path) -> None:
         shutil.rmtree(directory)
     except OSError as exc:
         raise BuildError(
-            f"failed to remove stale projection directory {native_path(directory)}: {exc}"
+            f"failed to remove stale projection directory {str(directory)}: {exc}"
         ) from exc
 
 
@@ -262,7 +222,7 @@ def unique_parent_dirs(paths: list[Path]) -> list[Path]:
 
     for path in paths:
         parent = path.parent
-        key = os.path.normcase(native_path(parent))
+        key = os.path.normcase(str(parent))
         if key in seen:
             continue
         seen.add(key)
@@ -272,10 +232,10 @@ def unique_parent_dirs(paths: list[Path]) -> list[Path]:
 
 
 def msbuild_item(path: Path, dependent_upon: Path | None = None) -> dict[str, str]:
-    native = native_path(absolute_path(path))
+    native = str(absolute_path(path))
     item = {"ItemSpec": native, "FullPath": native}
     if dependent_upon is not None:
-        item["DependentUpon"] = native_path(absolute_path(dependent_upon))
+        item["DependentUpon"] = str(absolute_path(dependent_upon))
     return item
 
 
@@ -291,31 +251,36 @@ def build_xaml_json(
     is_pass1: bool,
 ) -> dict[str, Any]:
     # 自动发现所有 .xaml 文件，按命名约定分类
-    xaml_files = discover_xaml_files(src_dir)
+    xaml_files = sorted(src_dir.rglob("*.xaml"))
+    xaml_pages = xaml_files.copy()
     if not xaml_files:
-        raise BuildError(f"no .xaml files found in {native_path(src_dir)}")
-    xaml_apps, xaml_pages = classify_xaml(xaml_files, src_dir)
+        raise BuildError(f"no .xaml files found in {str(src_dir)}")
+    # xaml_apps, xaml_pages = classify_xaml(xaml_files, src_dir)
+    for i, xaml_app in enumerate(xaml_pages):
+        if xaml_app == src_dir / "App.xaml":
+            xaml_app = xaml_pages.pop(i)
+            break
+    else:
+        raise BuildError(f"no App.xaml found in {str(src_dir)}")
 
     # 由 .xaml 文件推导对应的 .h 头文件列表
     header_files: list[tuple[Path, Path]] = []
     for xf in xaml_files:
-        hf = xaml_to_header(xf)
+        hf = xf.with_suffix(".xaml.h")
         if hf.is_file():
             header_files.append((hf, xf))
         else:
             print(
-                f" mwarning: no header file found for {xf.name} (expected {hf.name}), skipping ClIncludeFiles entry"
+                f" warning: no header file found for {xf.name} (expected {hf.name}), skipping ClIncludeFiles entry"
             )
 
     data: dict[str, Any] = {
-        "SavedStateFile": native_path(generated_dir / "XamlCompilerState.xml"),
+        "SavedStateFile": str(generated_dir / "XamlCompilerState.xml"),
         "IsPass1": is_pass1,
         "Language": "CppWinRT",
-        "ProjectPath": native_path(
-            absolute_path(xaml_apps[0] if xaml_apps else xaml_files[0])
-        ),
+        "ProjectPath": str(absolute_path(xaml_app)),
         "LanguageSourceExtension": ".cpp",
-        "OutputPath": native_path(generated_dir),
+        "OutputPath": str(generated_dir),
         "RootNamespace": namespace,
         "PrecompiledHeaderFile": "pch.h",
         "FeatureControlFlags": "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen",
@@ -323,7 +288,7 @@ def build_xaml_json(
         "ReferenceAssemblyPaths": [],
         "TargetPlatformMinVersion": winsdk_version,
         "XamlPages": [msbuild_item(p) for p in xaml_pages],
-        "XamlApplications": [msbuild_item(p) for p in xaml_apps],
+        "XamlApplications": [msbuild_item(xaml_app)],
         "ClIncludeFiles": [
             msbuild_item(hf, dependent_upon=xf) for hf, xf in header_files
         ],
@@ -331,7 +296,7 @@ def build_xaml_json(
 
     if not is_pass1:
         data["LocalAssembly"] = [msbuild_item(merged_winmd)]
-        data["GenXbfPath"] = native_path(genxbf_path)
+        data["GenXbfPath"] = str(genxbf_path)
 
     return data
 
@@ -340,7 +305,7 @@ def write_text(path: Path, content: str) -> None:
     try:
         path.write_text(content, encoding="utf-8", newline="\n")
     except OSError as exc:
-        raise BuildError(f"failed to write {native_path(path)}: {exc}") from exc
+        raise BuildError(f"failed to write {str(path)}: {exc}") from exc
 
 
 def write_json(path: Path, data: dict[str, Any]) -> None:
@@ -368,7 +333,7 @@ def projection_fingerprint(
         stat = input_path.stat()
         files.append(
             {
-                "path": native_path(input_path),
+                "path": str(input_path),
                 "size": stat.st_size,
                 "mtime_ns": stat.st_mtime_ns,
             }
@@ -407,7 +372,7 @@ def write_shared_projection_stamp(
 
 
 def same_path(left: Path, right: Path) -> bool:
-    return os.path.normcase(native_path(left)) == os.path.normcase(native_path(right))
+    return os.path.normcase(str(left)) == os.path.normcase(str(right))
 
 
 def generate_xaml_metadata_provider(generated_dir: Path, namespace: str) -> None:
@@ -438,31 +403,31 @@ def generate_shared_projection_headers(
     appsdk_winmds: list[Path],
 ) -> None:
     # 阶段一：平台契约投影。
-    phase1a = [native_path(cppwinrt_exe)]
+    phase1a = [str(cppwinrt_exe)]
     for winmd in platform_winmds:
-        phase1a.extend(["-in", native_path(winmd)])
-    phase1a.extend(["-out", native_path(shared_projection_dir)])
+        phase1a.extend(["-in", str(winmd)])
+    phase1a.extend(["-out", str(shared_projection_dir)])
     run_command(phase1a)
 
     # 阶段二：WebView2 投影，引用平台契约。
-    phase1b = [native_path(cppwinrt_exe), "-in", native_path(webview2_winmd)]
+    phase1b = [str(cppwinrt_exe), "-in", str(webview2_winmd)]
     for winmd in platform_winmds:
-        phase1b.extend(["-ref", native_path(winmd)])
-    phase1b.extend(["-out", native_path(shared_projection_dir)])
+        phase1b.extend(["-ref", str(winmd)])
+    phase1b.extend(["-out", str(shared_projection_dir)])
     run_command(phase1b)
 
     # 阶段三：Windows App SDK / WinUI 投影，引用平台契约与 WebView2。
-    phase1c = [native_path(cppwinrt_exe)]
+    phase1c = [str(cppwinrt_exe)]
     for winmd in appsdk_winmds:
-        phase1c.extend(["-in", native_path(winmd)])
+        phase1c.extend(["-in", str(winmd)])
     for winmd in platform_winmds:
-        phase1c.extend(["-ref", native_path(winmd)])
+        phase1c.extend(["-ref", str(winmd)])
     phase1c.extend(
         [
             "-ref",
-            native_path(webview2_winmd),
+            str(webview2_winmd),
             "-out",
-            native_path(shared_projection_dir),
+            str(shared_projection_dir),
         ]
     )
     run_command(phase1c)
@@ -479,29 +444,29 @@ def run_midl(
     env: dict[str, str],
 ) -> None:
     command = [
-        native_path(midl_exe),
-        native_path(idl),
+        str(midl_exe),
+        str(idl),
         "/nologo",
         "/winrt",
         "/winmd",
-        native_path(out_winmd),
+        str(out_winmd),
         "/nomidl",
         "/h",
         "nul",
         "/metadata_dir",
-        native_path(foundation_meta),
+        str(foundation_meta),
         "/I",
-        native_path(sdk_include_dir / "um"),
+        str(sdk_include_dir / "um"),
         "/I",
-        native_path(sdk_include_dir / "shared"),
+        str(sdk_include_dir / "shared"),
         "/I",
-        native_path(sdk_include_dir / "winrt"),
+        str(sdk_include_dir / "winrt"),
         # 支持 IDL 相对 import（例如 import "Common.idl"）
         "/I",
-        native_path(idl.parent),
+        str(idl.parent),
     ]
     for ref_winmd in ref_winmds:
-        command.extend(["/reference", native_path(ref_winmd)])
+        command.extend(["/reference", str(ref_winmd)])
     run_command(command, env=env)
 
 
@@ -598,10 +563,10 @@ def main(argv: list[str] | None = None) -> int:
         xaml_compiler = winui_pkg / "tools" / "net472" / "XamlCompiler.exe"
         genxbf_dir = winui_pkg / "tools"
 
-        # 若用户提供了自定义 XAML 编译器路径，则仅覆盖编译器可执行文件
-        # GenXbf 本地 DLL 仍从 NuGet 包加载，与编译器可执行文件无关
+        # 若用户提供了自定义 XAML 编译器路径
         if args.xaml_compiler_path:
             xaml_compiler = absolute_path(args.xaml_compiler_path) / "XamlCompiler.exe"
+
         webview2_winmd = (
             root
             / "microsoft.web.webview2"
@@ -616,11 +581,11 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         # 动态发现用户编写的源文件，替代硬编码文件列表
-        xaml_files = discover_xaml_files(src_dir)
-        if not xaml_files:
-            raise BuildError(f"no .xaml files found in {native_path(src_dir)}")
+        xaml_files = sorted(src_dir.rglob("*.xaml"))
+        if len(xaml_files) == 0:
+            raise BuildError(f"no .xaml files found in {str(src_dir)}")
 
-        idl_files = discover_idl_files(src_dir)
+        idl_files = sorted(src_dir.rglob("*.idl"))
 
         require_file(cppwinrt_exe, "cppwinrt.exe")
         require_file(midl_exe, "midl.exe")
@@ -658,10 +623,10 @@ def main(argv: list[str] | None = None) -> int:
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 
-        print(f"Project: {native_path(project_dir)}")
-        print(f"Build:   {native_path(build_dir)}")
-        print(f"Shared:  {native_path(shared_projection_dir)}")
-        print(f"WinSDK:  {native_path(winsdk_root)} ({winsdk_version})")
+        print(f"Project: {str(project_dir)}")
+        print(f"Build:   {str(build_dir)}")
+        print(f"Shared:  {str(shared_projection_dir)}")
+        print(f"WinSDK:  {str(winsdk_root)} ({winsdk_version})")
         print(
             f"Refs:    {len(platform_winmds)} platform, {len(appsdk_winmds)} WinAppSDK, 1 WebView2"
         )
@@ -720,16 +685,16 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         print_phase("[3/8] Merge WinMDs")
-        unmerged_winmds = discover_winmd_files(winmd_unmerged_dir)
+        unmerged_winmds = sorted(winmd_unmerged_dir.rglob("*.winmd"))
         if not unmerged_winmds:
             raise BuildError(
-                f"no .winmd files found in {native_path(winmd_unmerged_dir)} — MIDL compilation failed"
+                f"no .winmd files found in {str(winmd_unmerged_dir)} — MIDL compilation failed"
             )
-        mdmerge = [native_path(mdmerge_exe), "-o", native_path(winmd_merged_dir)]
+        mdmerge = [str(mdmerge_exe), "-o", str(winmd_merged_dir)]
         for directory in unique_parent_dirs(ref_winmds):
-            mdmerge.extend(["-metadata_dir", native_path(directory)])
+            mdmerge.extend(["-metadata_dir", str(directory)])
         for wm in unmerged_winmds:
-            mdmerge.extend(["-i", native_path(wm)])
+            mdmerge.extend(["-i", str(wm)])
         mdmerge.extend(["-partial", "-n:1"])
         run_command(mdmerge)
         require_file(merged_winmd, "merged WinMD")
@@ -738,13 +703,13 @@ def main(argv: list[str] | None = None) -> int:
         if not same_path(shared_projection_dir, generated_dir):
             remove_stale_projection_dir(generated_dir / "winrt")
         cppwinrt_project = [
-            native_path(cppwinrt_exe),
+            str(cppwinrt_exe),
             "-in",
-            native_path(merged_winmd),
+            str(merged_winmd),
             "-out",
-            native_path(generated_dir),
+            str(generated_dir),
             "-comp",
-            native_path(generated_sources_dir),
+            str(generated_sources_dir),
             "-name",
             args.namespace,
             "-pch",
@@ -754,7 +719,7 @@ def main(argv: list[str] | None = None) -> int:
             "-overwrite",
         ]
         for winmd in ref_winmds:
-            cppwinrt_project.extend(["-ref", native_path(winmd)])
+            cppwinrt_project.extend(["-ref", str(winmd)])
         run_command(cppwinrt_project)
 
         print_phase("[5/8] Generate XamlMetaDataProvider source")
@@ -782,9 +747,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         run_command(
             [
-                native_path(xaml_compiler),
-                native_path(pass1_json),
-                native_path(pass1_out),
+                str(xaml_compiler),
+                str(pass1_json),
+                str(pass1_out),
             ]
         )
 
@@ -806,9 +771,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         run_command(
             [
-                native_path(xaml_compiler),
-                native_path(pass2_json),
-                native_path(pass2_out),
+                str(xaml_compiler),
+                str(pass2_json),
+                str(pass2_out),
             ]
         )
 
@@ -820,7 +785,7 @@ def main(argv: list[str] | None = None) -> int:
 
         # Collect .xbf files generated by XamlCompiler (recursive to cover subdirectories)
         xbf_files = sorted(generated_dir.rglob("*.xbf"))
-        if not xbf_files:
+        if len(xbf_files) == 0:
             raise BuildError("No .xbf files found - XAML compilation may have failed")
 
         # Write resfiles list (full paths to .xbf files)
@@ -854,15 +819,15 @@ def main(argv: list[str] | None = None) -> int:
         pri_output = generated_dir / "resources.pri"
         run_command(
             [
-                native_path(makepri_exe),
+                str(makepri_exe),
                 "new",
                 "/cf",
-                native_path(priconfig_path),
+                str(priconfig_path),
                 "/pr",
-                native_path(project_dir),
+                str(project_dir),
                 "/o",
                 "/of",
-                native_path(pri_output),
+                str(pri_output),
             ]
         )
 

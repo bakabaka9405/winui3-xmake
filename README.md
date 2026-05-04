@@ -1,89 +1,128 @@
-# winui3_xmake
+# winui3-xmake
 
-一个基于 xmake 的 WinUI 3 + C++/WinRT 示例项目。
+`winui3-xmake` 是一个面向 Windows x64 的 WinUI 3 / C++/WinRT 示例工程。项目使用 xmake 与 Python 脚本编排 XAML、IDL、WinMD、C++/WinRT 投影和资源索引生成流程，不依赖 Visual Studio 解决方案文件（`.sln` / `.vcxproj`）。
 
-这个仓库展示了如何不依赖 Visual Studio 的 .sln/.vcxproj，直接通过 xmake 脚本完成 WinUI 3 应用的完整构建链：NuGet 还原、cppwinrt 投影生成、MIDL/WinMD 生成与合并、XAML 编译、PRI 资源打包，以及最终运行。
+## 示例目标
 
-## 项目功能
+| 目标 | 说明 | 源码目录 |
+| --- | --- | --- |
+| `demo.hello` | 最小 WinUI 3 应用，包含按钮交互与 `DesktopAcrylicBackdrop` | `demo/hello/src/` |
+| `demo.notepad` | 简易记事本，包含 `x:Bind` 双向绑定与 ViewModel | `demo/notepad/src/` |
+| `demo.gallery` | 控件展示应用，覆盖按钮、选择、文本、媒体、导航和菜单等场景 | `demo/gallery/src/` |
 
-- WinUI 3 桌面应用最小可运行示例（Hello World + 点击按钮改文案）。
-- 启用 Windows App SDK Bootstrap（手写 `wWinMain`，避免 XAML 自动入口导致初始化缺失）。
-- 自动启用高 DPI（`PER_MONITOR_AWARE_V2`）。
-- 主窗口启用 Mica 背景（`MicaKind::BaseAlt`）。
-- xmake 规则自动完成 WinUI 3 所需代码生成与资源打包。
-
-## 技术栈与依赖
+## 技术栈
 
 - C++20
-- xmake（Windows 平台、x64）
-- WinUI 3 / Windows App SDK
-- C++/WinRT
-- WebView2 元数据（用于投影输入）
+- xmake（Windows x64）
+- WinUI 3 / Windows App SDK 1.8
+- C++/WinRT 2.0
+- WIL
+- WebView2 WinMD（用于 C++/WinRT 投影输入）
 
-NuGet 依赖版本在 `packages.config` 中定义，首次构建会自动还原到 `.xmake/nuget`。
-
-## 目录说明
-
-- `src/`：应用源码（`main.cpp`、`App.xaml*`、`MainWindow.xaml*`、IDL 等）
-- `xmake/rules/`：xmake 规则入口
-- `xmake/modules/winui3/`：WinUI 3 构建流程脚本（restore/cppwinrt/winmd/xaml/makepri）
-- `xmake/scripts/`：Python 规划与输入生成脚本（路径解析、命令参数规划、XAML/makepri 输入生成）
-- `.xmake/generated/`：构建时生成的中间代码与资源
-- `build/`：编译输出目录
+NuGet 依赖及精确版本见 `packages.config`。构建脚本会从 `%USERPROFILE%\.nuget\packages` 解析包路径；首次构建前请确认依赖已按 NuGet 全局包目录布局安装（小写包名 / 版本号）。
 
 ## 环境要求
 
-请确保本机具备以下环境：
-
 1. Windows 10/11 x64
-2. Visual Studio 2022+ 或 Build Tools（包含 MSVC C++ 工具链与 Windows SDK）
-3. xmake（建议 3.x）
-4. `nuget.exe` 可在 PATH 中找到（仅当 `.xmake/nuget` 缺依赖时必需）
-5. Python 3.10+（必需，构建流程由 Python 脚本生成规划与输入文件）
+2. Visual Studio 2022 或 Build Tools，包含 MSVC C++ 工具链与 Windows SDK
+3. xmake
+4. Python 3.10+
+5. `packages.config` 中的 NuGet 包已存在于 NuGet 全局包目录
 
-## 部署到新电脑
+> `xmake.lua` 可通过 `winui3.xaml_compiler_path` 指定自定义 XAML Compiler 路径。若在其他机器上使用，请确认该路径有效，或移除该值以改用脚本的包路径探测逻辑。
 
-本项目生成的是未打包 WinUI 3 桌面应用，并使用 Windows App SDK Bootstrap 启动。Release 产物使用 MSVC 动态运行库，因此目标电脑需要满足以下条件之一：
+## 准备、构建与运行
 
-1. 推荐：预先安装最新版 Microsoft Visual C++ Redistributable（x64），安装程序可使用 `vc_redist.x64.exe /install /quiet /norestart` 静默安装。
-2. 可选：直接分发完整的 Release 输出目录。本项目的 `winui3.app` 规则会复制 `Microsoft.WindowsAppRuntime.Bootstrap.dll` 与 `resources.pri`，`demo.msvc_runtime` 规则会在 Release 构建后复制可再分发的 MSVC CRT DLL 到可执行文件同目录，用于应用本地部署。
+```powershell
+# 可选：查看 NuGet 全局包目录；构建脚本默认读取 %USERPROFILE%\.nuget\packages
+nuget locals global-packages -list
 
-不要将 Debug 输出目录部署到新电脑。Debug 模式使用 `/MDd`，依赖不可再分发的调试版 MSVC 运行库。
+# 构建指定示例
+xmake build demo.hello
+xmake build demo.notepad
+xmake build demo.gallery
 
-如果目标电脑启动后无窗口，请先检查事件查看器中的 `Windows Logs/Application`，并确认已经安装 Windows App Runtime 与 Microsoft Visual C++ Redistributable，或确认发布目录内包含 `vcruntime140*.dll`、`msvcp140*.dll` 等运行库文件。
+# 运行示例
+xmake run demo.hello
 
-## 自动化构建流程（由规则完成）
+# 切换构建模式
+xmake f -m debug
+xmake f -m release
+```
 
-`winui3.app` 规则会在构建期自动执行以下步骤：
+构建输出路径为：`build\<host>\<mode>\<arch>\<target>\`。
 
-1. NuGet 还原（按 `packages.config`）。
-2. 生成基础投影（platform + WebView2 + AppSDK）。
-3. 通过 MIDL 生成组件 WinMD，并用 mdmerge 合并。
-4. 基于合并后的 WinMD 生成组件投影代码。
-5. 生成 XAML/makepri 输入（Python 脚本）。
-6. 调用 XamlCompiler 两阶段编译 XAML。
-7. 调用 makepri 生成 `resources.pri`，并复制到输出目录。
+## 目录结构
 
-## 迁移后架构（Lua + Python）
+```text
+winui3-xmake/
+├── common/             共享入口点、预编译头和应用清单
+├── demo/               示例应用；每个子目录定义一个 xmake 目标
+├── rules/              xmake 自定义规则
+├── scripts/            WinUI 3 代码生成与平台探测脚本
+├── packages.config     NuGet 依赖清单
+├── xmake.lua           根项目配置
+└── build/              构建输出目录（未纳入版本控制）
+```
 
-- Lua 负责接入 xmake 生命周期与命令执行（`on_load` / `before_buildcmd` / `after_buildcmd`）。
-- Python 负责路径与参数规划、上下文聚合、以及 XAML/makepri 输入文件生成。
-- 上下文由单个聚合脚本 `xmake/scripts/resolve_context_plan.py` 统一产出（`bootstrap`/`target` 两种模式）。
-- `before_build` 先执行 restore（context 驱动），随后通过 `resolve_before_build_plan.py` 一次性产出 cppwinrt/winmd/xaml 计划。
-- 各步骤计划脚本与 `gen_xaml_inputs.py` 统一读取 `context.*.json`，Lua 侧仅传递 `--context` 和 `--output`。
-- `on_load` 阶段直接消费聚合上下文中的 `sysincludedirs`、`linkdirs`、`links`，不再单独调用 on_load 规划脚本。
-- XAML 输入生成通过 `gen_xaml_inputs.py` 的 CLI 参数模式完成，不再依赖 Lua 手工 JSON 转义和 PowerShell 中转写文件。
+关键文件：
 
-## 命名空间修改指南
+- `common/main.cpp`：在 XAML 生成的 `wWinMain` 运行前初始化 Windows App SDK Bootstrap。
+- `rules/winui3.lua`：定义 `winui3.app` 规则，配置编译、链接、代码生成和运行时文件复制。
+- `rules/demo.lua`：定义 `demo.common` 规则，为示例目标挂载共享入口点、预编译头和清单。
+- `scripts/build_winui3.py`：执行 WinUI 3 代码生成流水线。
+- `scripts/plat_info.py`：解析 Windows SDK、MSVC 工具链和 NuGet 包路径。
 
-项目生成链使用的根命名空间在 `xmake/modules/winui3/context.lua` 顶部常量 `ROOT_NAMESPACE` 控制。
+## 构建流水线
 
-修改命名空间时，建议同步检查以下文件中的手写命名空间和 `x:Class`：
+`winui3.app` 在构建前调用 `scripts/build_winui3.py`，执行以下步骤：
 
-- `src/MainWindow.idl`
-- `src/XamlMetaDataProvider.idl`
-- `src/App.xaml`
-- `src/MainWindow.xaml`
-- `src/*.xaml.h`
-- `src/*.xaml.cpp`
-- `src/main.cpp`
+1. 生成共享 C++/WinRT 投影头（Windows 平台 WinMD、WebView2、Windows App SDK）。
+2. 使用 MIDL 编译项目 IDL，生成未合并 WinMD。
+3. 使用 `mdmerge` 合并 WinMD。
+4. 基于合并后的 WinMD 生成项目 C++/WinRT 源码。
+5. 在需要时生成 `XamlMetaDataProvider` 源码。
+6. 执行 XAML Pass 1，生成 `.xbf`。
+7. 执行 XAML Pass 2，生成 `.g.hpp` / `.g.cpp`。
+8. 使用 `makepri` 生成 `resources.pri`，并复制到目标输出目录。
+
+构建完成后，输出目录包含应用程序、生成代码、WinMD 中间产物、`resources.pri` 和 `Microsoft.WindowsAppRuntime.Bootstrap.dll`。
+
+## 部署说明
+
+本项目生成未打包 WinUI 3 桌面应用，并在启动时通过 Windows App SDK Bootstrap 加载匹配的 Windows App Runtime。
+
+部署时请确认：
+
+1. 输出目录包含 `.exe`、`resources.pri` 和 `Microsoft.WindowsAppRuntime.Bootstrap.dll`。
+2. 目标机器已安装匹配的 Windows App Runtime；若未安装，Bootstrap 会根据 `MddBootstrapInitialize2` 选项显示安装界面。
+3. 目标机器具备匹配的 MSVC 运行库，或使用静态运行库构建 Release 产物。
+
+```powershell
+# 使用静态 MSVC 运行库构建 Release
+xmake f -m release --cxflags=/MT
+xmake build demo.hello
+```
+
+若不使用 `/MT`，请在目标机器安装 Microsoft Visual C++ Redistributable（x64）。不要分发 Debug 构建产物；Debug 模式依赖不可再分发的调试版 MSVC 运行库。
+
+## 添加新示例
+
+1. 在 `demo/` 下创建目录，并放入 XAML、IDL 与 C++ 源码。
+2. 创建 `demo/<name>/xmake.lua`：
+
+```lua
+target("demo.<name>")
+    add_rules("winui3.app", "demo.common")
+    set_values("winui3.namespace", "<namespace>")
+    set_values("winui3.src_dir", path.join(os.scriptdir(), "src"))
+    add_files(path.join(os.scriptdir(), "src", "**.cpp"))
+```
+
+3. 在源码中通过 `#include "pch.h"` 引用共享预编译头。
+
+随后可使用 `xmake build demo.<name>` 构建新目标。
+
+## 命名空间约定
+
+每个示例的根命名空间由 `set_values("winui3.namespace", ...)` 指定。修改命名空间时，请同步检查 IDL、XAML 的 `x:Class` 和手写 C++ 命名空间；应用入口由 XAML 生成代码提供。
