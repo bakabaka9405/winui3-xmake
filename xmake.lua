@@ -5,7 +5,8 @@
 
 
 set_project("winui3_demos")
-add_rules("mode.debug", "mode.release")
+includes("rules/dist.lua")
+add_rules("mode.debug", "mode.release", "mode.dist")
 set_version("1.0.0")
 set_languages("cxx20")
 set_values("winui3.xaml_compiler_path", "C:\\Workspace\\Project\\xaml-compiler\\src\\XamlCompiler\\bin\\Release\\net472")
