@@ -14,7 +14,7 @@
 
 - C++20
 - xmake（Windows x64）
-- WinUI 3 / Windows App SDK 1.8
+- WinUI 3 / Windows App SDK 2.0.1
 - C++/WinRT 2.0
 - WIL
 - WebView2 WinMD（用于 C++/WinRT 投影输入）

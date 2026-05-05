@@ -108,19 +108,26 @@ except BuildError:
 BUILD_TOOLS_BIN_VERSION = "10.0.28000.0"
 DEFAULT_VC_BIN = _discover_vc_bin()
 
-# WinAppSDK 1.8+ splits WinMDs across Foundation, WinUI, and InteractiveExperiences sub-packages
+# WinAppSDK 2.0.1+ splits WinMDs across Foundation, WinUI, and InteractiveExperiences sub-packages
 APP_SDK_WINMDS_FOUNDATION = [
+    "Microsoft.Security.Authentication.OAuth",
+    "Microsoft.Windows.ApplicationModel.Background",
+    "Microsoft.Windows.ApplicationModel.Background.UniversalBGTask",
     "Microsoft.Windows.ApplicationModel.DynamicDependency",
     "Microsoft.Windows.ApplicationModel.Resources",
     "Microsoft.Windows.ApplicationModel.WindowsAppRuntime",
     "Microsoft.Windows.AppLifecycle",
     "Microsoft.Windows.AppNotifications",
     "Microsoft.Windows.AppNotifications.Builder",
+    "Microsoft.Windows.BadgeNotifications",
     "Microsoft.Windows.Foundation",
     "Microsoft.Windows.Globalization",
     "Microsoft.Windows.Management.Deployment",
+    "Microsoft.Windows.Media.Capture",
     "Microsoft.Windows.PushNotifications",
     "Microsoft.Windows.Security.AccessControl",
+    "Microsoft.Windows.Storage",
+    "Microsoft.Windows.Storage.Pickers",
     "Microsoft.Windows.System",
     "Microsoft.Windows.System.Power",
 ]
@@ -204,7 +211,7 @@ def collect_appsdk_winmds(
     winui_pkg: Path,
     ixp_pkg: Path,
 ) -> list[Path]:
-    """从 WinAppSDK 1.8+ 子包元数据目录中收集 WinMD 文件。"""
+    """从 WinAppSDK 2.0.1+ 子包元数据目录中收集 WinMD 文件。"""
     winmds: list[Path] = []
 
     # Foundation metadata (root-level)

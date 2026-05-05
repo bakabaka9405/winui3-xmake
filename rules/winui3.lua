@@ -11,10 +11,10 @@
 
 local NUGET_BASE = (os.getenv("USERPROFILE") or ""):gsub("\\", "/") .. "/.nuget/packages"
 
-local NUGET_RUNTIME    = NUGET_BASE .. "/microsoft.windowsappsdk.runtime/1.8.260416003"
-local NUGET_FOUNDATION = NUGET_BASE .. "/microsoft.windowsappsdk.foundation/1.8.260415000"
-local NUGET_WINUI      = NUGET_BASE .. "/microsoft.windowsappsdk.winui/1.8.260415005"
-local NUGET_IXP        = NUGET_BASE .. "/microsoft.windowsappsdk.interactiveexperiences/1.8.260415001"
+local NUGET_RUNTIME    = NUGET_BASE .. "/microsoft.windowsappsdk.runtime/2.0.1"
+local NUGET_FOUNDATION = NUGET_BASE .. "/microsoft.windowsappsdk.foundation/2.0.20"
+local NUGET_WINUI      = NUGET_BASE .. "/microsoft.windowsappsdk.winui/2.0.12"
+local NUGET_IXP        = NUGET_BASE .. "/microsoft.windowsappsdk.interactiveexperiences/2.0.12"
 local NUGET_WIL        = NUGET_BASE .. "/microsoft.windows.implementationlibrary/1.0.260126.7"
 
 rule("winui3.app")
@@ -38,7 +38,8 @@ rule("winui3.app")
         target:add("includedirs", path.join(path.directory(target:targetdir()), "shared", "generated"))
 
         --  NuGet include directories 
-        target:add("includedirs", NUGET_RUNTIME .. "/include")
+        -- Runtime 2.0.1 no longer ships include/; version info is defined in common/main.cpp
+        -- target:add("includedirs", NUGET_RUNTIME .. "/include")
         target:add("includedirs", NUGET_FOUNDATION .. "/include")
         target:add("includedirs", NUGET_WINUI .. "/include")
         target:add("includedirs", NUGET_IXP .. "/include")

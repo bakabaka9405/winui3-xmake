@@ -537,12 +537,10 @@ def main(argv: list[str] | None = None) -> int:
         merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
 
         root = nuget_root()
-        # WinAppSDK 1.8+ sub-packages (latest stable, April 2026)
-        foundation_pkg = root / "microsoft.windowsappsdk.foundation" / "1.8.260415000"
-        winui_pkg = root / "microsoft.windowsappsdk.winui" / "1.8.260415005"
-        ixp_pkg = (
-            root / "microsoft.windowsappsdk.interactiveexperiences" / "1.8.260415001"
-        )
+        # WinAppSDK 2.0.1 sub-packages (stable GA, April 2026, SemVer)
+        foundation_pkg = root / "microsoft.windowsappsdk.foundation" / "2.0.20"
+        winui_pkg = root / "microsoft.windowsappsdk.winui" / "2.0.12"
+        ixp_pkg = root / "microsoft.windowsappsdk.interactiveexperiences" / "2.0.12"
         cppwinrt_exe = (
             root
             / "microsoft.windows.cppwinrt"
