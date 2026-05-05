@@ -9,6 +9,7 @@
 | `demo.hello` | 最小 WinUI 3 应用，包含按钮交互与 `DesktopAcrylicBackdrop` | `demo/hello/src/` |
 | `demo.notepad` | 简易记事本，包含 `x:Bind` 双向绑定与 ViewModel | `demo/notepad/src/` |
 | `demo.gallery` | 控件展示应用，覆盖按钮、选择、文本、媒体、导航和菜单等场景 | `demo/gallery/src/` |
+| `demo.camera` | 摄像头预览示例，枚举视频采集设备并通过 `MediaCapture` 与 `MediaPlayerElement` 显示预览 | `demo/camera/src/` |
 
 ## 技术栈
 
@@ -41,6 +42,7 @@ nuget locals global-packages -list
 xmake build demo.hello
 xmake build demo.notepad
 xmake build demo.gallery
+xmake build demo.camera
 
 # 运行示例
 xmake run demo.hello
@@ -48,9 +50,10 @@ xmake run demo.hello
 # 切换构建模式
 xmake f -m debug
 xmake f -m release
+xmake f -m dist
 ```
 
-构建输出路径为：`build\<host>\<mode>\<arch>\<target>\`。
+`dist` 模式用于生成分发产物：该模式启用最快优化、隐藏符号、剥离符号，并使用静态 MSVC 运行库（`MT`）。
 
 ## 目录结构
 
@@ -70,6 +73,7 @@ winui3-xmake/
 - `common/main.cpp`：在 XAML 生成的 `wWinMain` 运行前初始化 Windows App SDK Bootstrap。
 - `rules/winui3.lua`：定义 `winui3.app` 规则，配置编译、链接、代码生成和运行时文件复制。
 - `rules/demo.lua`：定义 `demo.common` 规则，为示例目标挂载共享入口点、预编译头和清单。
+- `rules/dist.lua`：定义 `mode.dist` 分发构建模式，配置优化、符号剥离和静态运行库。
 - `scripts/build_winui3.py`：执行 WinUI 3 代码生成流水线。
 - `scripts/plat_info.py`：解析 Windows SDK、MSVC 工具链和 NuGet 包路径。
 
@@ -96,15 +100,15 @@ winui3-xmake/
 
 1. 输出目录包含 `.exe`、`resources.pri` 和 `Microsoft.WindowsAppRuntime.Bootstrap.dll`。
 2. 目标机器已安装匹配的 Windows App Runtime；若未安装，Bootstrap 会根据 `MddBootstrapInitialize2` 选项显示安装界面。
-3. 目标机器具备匹配的 MSVC 运行库，或使用静态运行库构建 Release 产物。
+3. 目标机器具备匹配的 MSVC 运行库，或使用 `dist` 模式生成静态运行库产物。
 
 ```powershell
-# 使用静态 MSVC 运行库构建 Release
-xmake f -m release --cxflags=/MT
+# 使用静态 MSVC 运行库构建分发产物
+xmake f -m dist
 xmake build demo.hello
 ```
 
-若不使用 `/MT`，请在目标机器安装 Microsoft Visual C++ Redistributable（x64）。不要分发 Debug 构建产物；Debug 模式依赖不可再分发的调试版 MSVC 运行库。
+若不使用静态 MSVC 运行库，请在目标机器安装 Microsoft Visual C++ Redistributable（x64）。不要分发 Debug 构建产物；Debug 模式依赖不可再分发的调试版 MSVC 运行库。
 
 ## 添加新示例
 
