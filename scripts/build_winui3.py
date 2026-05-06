@@ -13,20 +13,20 @@ from pathlib import Path
 from typing import Any
 
 from plat_info import (
-    BUILD_TOOLS_BIN_VERSION,
     WINDOWS_SDK_ROOT,
     WINDOWS_SDK_VERSION,
     BuildError,
     collect_appsdk_winmds,
     collect_platform_winmds,
     find_foundation_metadata_dir,
-    nuget_root,
     path_env_with_vc,
     platform_xml_path,
     require_dir,
     require_file,
     vc_bin_path,
 )
+
+from nuget_config import NuGetConfig, BUILD_TOOLS_BIN_VERSION
 
 # 输出控制
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
@@ -536,22 +536,17 @@ def main(argv: list[str] | None = None) -> int:
         winmd_merged_dir = build_dir / "winmd_merged"
         merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
 
-        root = nuget_root()
+        config = NuGetConfig.from_packages_config()
+
         # WinAppSDK 2.0.1 sub-packages (stable GA, April 2026, SemVer)
-        foundation_pkg = root / "microsoft.windowsappsdk.foundation" / "2.0.20"
-        winui_pkg = root / "microsoft.windowsappsdk.winui" / "2.0.12"
-        ixp_pkg = root / "microsoft.windowsappsdk.interactiveexperiences" / "2.0.12"
+        foundation_pkg = config.package_path("Microsoft.WindowsAppSDK.Foundation")
+        winui_pkg = config.package_path("Microsoft.WindowsAppSDK.WinUI")
+        ixp_pkg = config.package_path("Microsoft.WindowsAppSDK.InteractiveExperiences")
         cppwinrt_exe = (
-            root
-            / "microsoft.windows.cppwinrt"
-            / "2.0.250303.1"
-            / "bin"
-            / "cppwinrt.exe"
+            config.package_path("Microsoft.Windows.CppWinRT") / "bin" / "cppwinrt.exe"
         )
         buildtools_bin = (
-            root
-            / "microsoft.windows.sdk.buildtools"
-            / "10.0.28000.1721"
+            config.package_path("Microsoft.Windows.SDK.BuildTools")
             / "bin"
             / BUILD_TOOLS_BIN_VERSION
             / "x64"
@@ -566,9 +561,7 @@ def main(argv: list[str] | None = None) -> int:
             xaml_compiler = absolute_path(args.xaml_compiler_path) / "XamlCompiler.exe"
 
         webview2_winmd = (
-            root
-            / "microsoft.web.webview2"
-            / "1.0.3912.50"
+            config.package_path("Microsoft.Web.WebView2")
             / "lib"
             / "Microsoft.Web.WebView2.Core.winmd"
         )

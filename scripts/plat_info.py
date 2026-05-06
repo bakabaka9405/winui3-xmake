@@ -105,7 +105,6 @@ try:
     WINDOWS_SDK_VERSION = discover_winsdk_version(WINDOWS_SDK_ROOT)
 except BuildError:
     WINDOWS_SDK_VERSION = "10.0.26100.0"
-BUILD_TOOLS_BIN_VERSION = "10.0.28000.0"
 DEFAULT_VC_BIN = _discover_vc_bin()
 
 # WinAppSDK 2.0.1+ splits WinMDs across Foundation, WinUI, and InteractiveExperiences sub-packages
