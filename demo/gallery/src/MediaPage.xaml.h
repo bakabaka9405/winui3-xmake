@@ -33,6 +33,25 @@ struct MediaPage : MediaPageT<MediaPage> {
     void IsGroupSwitch_Toggled(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void ImageOpacitySlider_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void ImageCornerRadiusSlider_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void BadgeNumberSlider_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void BadgeGlyphBox_TextChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+
+private:
+    bool m_isInitializing{ true };
 };
 
 } // namespace winrt::gallery::implementation

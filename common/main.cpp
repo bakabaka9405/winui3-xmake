@@ -1,6 +1,8 @@
 #include "pch.h"
 
 #include <MddBootstrap.h>
+#include <cstdio>
+#include <exception>
 
 // WinAppSDK 2.0+ removed <WindowsAppSDK-VersionInfo.h> from the NuGet packages.
 // Define the version macros manually (SemVer scheme, stable GA release).
@@ -26,9 +28,13 @@
 #include "XamlTypeInfo.g.cpp"
 #endif
 
-// WinAppSDK bootstrap - static initializer
-// The XAML-generated code provides the wWinMain entry point
-static struct WinAppSdkBootstrap {
+#ifndef WINUI3_APP_NAMESPACE
+#error WINUI3_APP_NAMESPACE must be defined by the winui3.app xmake rule.
+#endif
+
+namespace {
+
+struct WinAppSdkBootstrap {
 	WinAppSdkBootstrap() {
 		winrt::check_hresult(MddBootstrapInitialize2(
 			WINDOWSAPPSDK_RELEASE_MAJORMINOR,
@@ -41,4 +47,89 @@ static struct WinAppSdkBootstrap {
 	~WinAppSdkBootstrap() {
 		MddBootstrapShutdown();
 	}
-} g_bootstrap;
+};
+
+void AttachDebugConsole() {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	static bool attached = false;
+	if (!attached && AttachConsole(ATTACH_PARENT_PROCESS)) {
+		FILE* stream{};
+		freopen_s(&stream, "CONOUT$", "w", stderr);
+		attached = true;
+	}
+#endif
+}
+
+void BreakIfDebuggerPresent() {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	if (IsDebuggerPresent()) {
+		__debugbreak();
+	}
+#endif
+}
+
+void RegisterUnhandledExceptionHandler(mux::Application const& app) {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	AttachDebugConsole();
+
+	app.UnhandledException([](auto&&, mux::UnhandledExceptionEventArgs const& e) {
+		fwprintf(stderr, L"Unhandled exception: %s\n", e.Message().c_str());
+		BreakIfDebuggerPresent();
+	});
+#else
+	(void)app;
+#endif
+}
+
+void ReportStartupException(winrt::hresult_error const& e) {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	AttachDebugConsole();
+	fwprintf(stderr, L"Unhandled exception during startup: %s\n", e.message().c_str());
+	BreakIfDebuggerPresent();
+#else
+	(void)e;
+#endif
+}
+
+void ReportStartupException(std::exception const& e) {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	AttachDebugConsole();
+	fprintf(stderr, "Unhandled exception during startup: %s\n", e.what());
+	BreakIfDebuggerPresent();
+#else
+	(void)e;
+#endif
+}
+
+void ReportUnknownStartupException() {
+#if defined(_DEBUG) && !defined(DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION)
+	AttachDebugConsole();
+	fwprintf(stderr, L"Unhandled exception during startup.\n");
+	BreakIfDebuggerPresent();
+#endif
+}
+
+} // namespace
+
+int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+	winrt::init_apartment(winrt::apartment_type::single_threaded);
+	WinAppSdkBootstrap bootstrap;
+
+	mux::Application::Start([](auto&&) {
+		try {
+			auto app = winrt::make<winrt::WINUI3_APP_NAMESPACE::implementation::App>();
+			RegisterUnhandledExceptionHandler(app);
+		} catch (winrt::hresult_error const& e) {
+			ReportStartupException(e);
+			throw;
+		} catch (std::exception const& e) {
+			ReportStartupException(e);
+			throw;
+		} catch (...) {
+			ReportUnknownStartupException();
+			throw;
+		}
+	});
+
+	return 0;
+}

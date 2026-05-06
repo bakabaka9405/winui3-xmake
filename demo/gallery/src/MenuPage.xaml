@@ -5,13 +5,13 @@
 
     <Grid ColumnSpacing="16">
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="320" />
         </Grid.ColumnDefinitions>
 
         <!--  ===== Left: Demo Area =====  -->
         <ScrollViewer Grid.Column="0">
-            <StackPanel Margin="16" Spacing="24">
+            <StackPanel Margin="16" Spacing="16">
 
                 <!--  MenuBar Block  -->
                 <Border
@@ -95,7 +95,7 @@
 
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="CommandBar" />
 
-                        <CommandBar x:Name="DemoCommandBar">
+                        <CommandBar x:Name="DemoCommandBar" Opening="DemoCommandBar_Opening" Closed="DemoCommandBar_Closed">
                             <CommandBar.PrimaryCommands>
                                 <AppBarButton
                                     Click="AddButton_Click"
@@ -149,7 +149,7 @@
 
         <!--  ===== Right: Property Editors =====  -->
         <ScrollViewer Grid.Column="1">
-            <StackPanel Margin="0,16,16,16" Spacing="20">
+            <StackPanel Margin="0,16,16,16" Spacing="12">
 
                 <!--  CommandBar Settings  -->
                 <Border
@@ -160,13 +160,13 @@
                     <StackPanel Spacing="12">
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="CommandBar Settings" />
 
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Is Open" />
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Is Open" />
                         <ToggleSwitch
                             x:Name="OpenSwitch"
                             IsOn="False"
                             Toggled="OpenSwitch_Toggled" />
 
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Default Label Position" />
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Default Label Position" />
                         <ComboBox
                             x:Name="LabelPositionCombo"
                             SelectedIndex="0"
@@ -176,7 +176,7 @@
                             <ComboBoxItem Content="Collapsed" />
                         </ComboBox>
 
-                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Overflow Button Visibility" />
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Overflow Button Visibility" />
                         <ComboBox
                             x:Name="OverflowVisibilityCombo"
                             SelectedIndex="0"
@@ -185,6 +185,77 @@
                             <ComboBoxItem Content="Visible" />
                             <ComboBoxItem Content="Collapsed" />
                         </ComboBox>
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Is Sticky" />
+                        <ToggleSwitch
+                            x:Name="StickySwitch"
+                            IsOn="False"
+                            Toggled="StickySwitch_Toggled" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Closed Display Mode" />
+                        <ComboBox
+                            x:Name="ClosedDisplayModeCombo"
+                            SelectedIndex="0"
+                            SelectionChanged="ClosedDisplayModeCombo_SelectionChanged">
+                            <ComboBoxItem Content="Compact" />
+                            <ComboBoxItem Content="Minimal" />
+                            <ComboBoxItem Content="Hidden" />
+                        </ComboBox>
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                        <TextBlock
+                            x:Name="CmdBarWidthLabel"
+                            Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="400" />
+                        <Slider
+                            x:Name="CmdBarWidthSlider"
+                            Minimum="200"
+                            Maximum="800"
+                            StepFrequency="10"
+                            ValueChanged="CmdBarWidthSlider_ValueChanged"
+                            Value="400" />
+
+                    </StackPanel>
+                </Border>
+
+                <!--  MenuBar Settings  -->
+                <Border
+                    Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="MenuBar Settings" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Is Enabled" />
+                        <ToggleSwitch
+                            x:Name="MenuBarEnabledSwitch"
+                            IsOn="True"
+                            Toggled="MenuBarEnabledSwitch_Toggled" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Flow Direction" />
+                        <ComboBox
+                            x:Name="MenuBarFlowDirectionCombo"
+                            SelectedIndex="0"
+                            SelectionChanged="MenuBarFlowDirectionCombo_SelectionChanged">
+                            <ComboBoxItem Content="LeftToRight" />
+                            <ComboBoxItem Content="RightToLeft" />
+                        </ComboBox>
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                        <TextBlock
+                            x:Name="MenuBarWidthLabel"
+                            Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="400" />
+                        <Slider
+                            x:Name="MenuBarWidthSlider"
+                            Minimum="200"
+                            Maximum="800"
+                            StepFrequency="10"
+                            ValueChanged="MenuBarWidthSlider_ValueChanged"
+                            Value="400" />
 
                     </StackPanel>
                 </Border>

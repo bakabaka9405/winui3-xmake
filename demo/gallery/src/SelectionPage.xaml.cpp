@@ -7,6 +7,10 @@
 
 namespace winrt::gallery::implementation {
 
+// ============================================================================
+// Constructor & data population
+// ============================================================================
+
 SelectionPage::SelectionPage() {
 	InitializeComponent();
 
@@ -22,6 +26,16 @@ SelectionPage::SelectionPage() {
 	DemoListView().ItemsSource(colors);
 	DemoGridView().ItemsSource(colors);
 }
+
+// ============================================================================
+// Helper: format a slider label string
+// ============================================================================
+
+namespace {
+hstring FormatSliderLabel(std::wstring_view prefix, double value) {
+	return hstring{ std::wstring{ prefix } + L": " + std::to_wstring(static_cast<int>(value)) };
+}
+} // namespace
 
 // ============================================================================
 // ComboBox handlers
@@ -59,6 +73,28 @@ void SelectionPage::OnComboEditableToggled(
 	DemoEditableComboBox().IsEditable(ComboEditableToggle().IsOn());
 }
 
+void SelectionPage::OnComboWidthChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double w = ComboWidthSlider().Value();
+	DemoComboBox().Width(w);
+	ComboWidthLabel().Text(FormatSliderLabel(L"Width", w));
+}
+
+void SelectionPage::OnComboPlaceholderChanged(
+	wf::IInspectable const&,
+	muxc::TextChangedEventArgs const&) {
+	DemoEditableComboBox().PlaceholderText(ComboPlaceholderBox().Text());
+}
+
+void SelectionPage::OnComboDropDownHeightChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double h = ComboDropDownSlider().Value();
+	DemoEditableComboBox().MaxDropDownHeight(h);
+	ComboDropDownLabel().Text(FormatSliderLabel(L"MaxDropDownHeight", h));
+}
+
 // ============================================================================
 // ListBox handlers
 // ============================================================================
@@ -85,13 +121,23 @@ void SelectionPage::OnListBoxSelectionModeChanged(
 void SelectionPage::OnListBoxWidthChanged(
 	wf::IInspectable const&,
 	muxp::RangeBaseValueChangedEventArgs const&) {
-	DemoListBox().Width(ListBoxWidthSlider().Value());
+	double w = ListBoxWidthSlider().Value();
+	DemoListBox().Width(w);
+	ListBoxWidthLabel().Text(FormatSliderLabel(L"Width", w));
 }
 
 void SelectionPage::OnListBoxHeightChanged(
 	wf::IInspectable const&,
 	muxp::RangeBaseValueChangedEventArgs const&) {
-	DemoListBox().Height(ListBoxHeightSlider().Value());
+	double h = ListBoxHeightSlider().Value();
+	DemoListBox().Height(h);
+	ListBoxHeightLabel().Text(FormatSliderLabel(L"Height", h));
+}
+
+void SelectionPage::OnListBoxEnabledToggled(
+	wf::IInspectable const&,
+	mux::RoutedEventArgs const&) {
+	DemoListBox().IsEnabled(ListBoxEnabledToggle().IsOn());
 }
 
 // ============================================================================
@@ -109,13 +155,41 @@ void SelectionPage::OnListViewSelectionModeChanged(
 	wf::IInspectable const&,
 	muxc::SelectionChangedEventArgs const&) {
 	int32_t idx = ListViewSelectionMode().SelectedIndex();
-	DemoListView().SelectionMode(static_cast<muxc::ListViewSelectionMode>(idx + 1));
+	DemoListView().SelectionMode(static_cast<muxc::ListViewSelectionMode>(idx));
 }
 
 void SelectionPage::OnListViewItemClickToggled(
 	wf::IInspectable const&,
 	mux::RoutedEventArgs const&) {
 	DemoListView().IsItemClickEnabled(ListViewItemClickToggle().IsOn());
+}
+
+void SelectionPage::OnListViewWidthChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double w = ListViewWidthSlider().Value();
+	DemoListView().Width(w);
+	ListViewWidthLabel().Text(FormatSliderLabel(L"Width", w));
+}
+
+void SelectionPage::OnListViewHeightChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double h = ListViewHeightSlider().Value();
+	DemoListView().Height(h);
+	ListViewHeightLabel().Text(FormatSliderLabel(L"Height", h));
+}
+
+void SelectionPage::OnListViewEnabledToggled(
+	wf::IInspectable const&,
+	mux::RoutedEventArgs const&) {
+	DemoListView().IsEnabled(ListViewEnabledToggle().IsOn());
+}
+
+void SelectionPage::OnListViewScrollingPlaceholdersToggled(
+	wf::IInspectable const&,
+	mux::RoutedEventArgs const&) {
+	DemoListView().ShowsScrollingPlaceholders(ListViewScrollingToggle().IsOn());
 }
 
 // ============================================================================
@@ -134,7 +208,29 @@ void SelectionPage::OnGridViewSelectionModeChanged(
 	wf::IInspectable const&,
 	muxc::SelectionChangedEventArgs const&) {
 	int32_t idx = GridViewSelectionMode().SelectedIndex();
-	DemoGridView().SelectionMode(static_cast<muxc::ListViewSelectionMode>(idx + 1));
+	DemoGridView().SelectionMode(static_cast<muxc::ListViewSelectionMode>(idx));
+}
+
+void SelectionPage::OnGridViewWidthChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double w = GridViewWidthSlider().Value();
+	DemoGridView().Width(w);
+	GridViewWidthLabel().Text(FormatSliderLabel(L"Width", w));
+}
+
+void SelectionPage::OnGridViewHeightChanged(
+	wf::IInspectable const&,
+	muxp::RangeBaseValueChangedEventArgs const&) {
+	double h = GridViewHeightSlider().Value();
+	DemoGridView().Height(h);
+	GridViewHeightLabel().Text(FormatSliderLabel(L"Height", h));
+}
+
+void SelectionPage::OnGridViewEnabledToggled(
+	wf::IInspectable const&,
+	mux::RoutedEventArgs const&) {
+	DemoGridView().IsEnabled(GridViewEnabledToggle().IsOn());
 }
 
 // ============================================================================

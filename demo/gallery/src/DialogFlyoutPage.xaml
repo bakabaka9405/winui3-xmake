@@ -2,22 +2,6 @@
     x:Class="gallery.DialogFlyoutPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Page.Resources>
-        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,8,0,4" />
-        </Style>
-        <Style x:Key="PropGroupStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,12,0,4" />
-        </Style>
-        <Style x:Key="PropLabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Margin" Value="0,4,0,0" />
-        </Style>
-    </Page.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*" />
@@ -26,7 +10,7 @@
 
         <!--  ═══ Left: Demo Area ═══  -->
         <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="12">
+            <StackPanel Spacing="16">
 
                 <!--  ContentDialog  -->
                 <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="ContentDialog" />
@@ -72,7 +56,7 @@
                     HorizontalAlignment="Left"
                     Content="Show MenuFlyout">
                     <Button.Flyout>
-                        <MenuFlyout>
+                        <MenuFlyout x:Name="DemoMenuFlyout">
                             <MenuFlyoutItem Click="OnCutClick" Text="Cut">
                                 <MenuFlyoutItem.Icon>
                                     <SymbolIcon Symbol="Cut" />
@@ -114,7 +98,7 @@
                     Padding="0,12,0,0"
                     BorderBrush="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                     BorderThickness="0,1,0,0">
-                    <StackPanel Spacing="4">
+            <StackPanel Spacing="8">
                         <TextBlock FontWeight="SemiBold" Text="Status" />
                         <TextBlock
                             x:Name="StatusText"
@@ -131,7 +115,7 @@
             Grid.Column="1"
             Padding="16,16"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="4">
+            <StackPanel Spacing="8">
 
                 <!--  ContentDialog Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="ContentDialog" />
@@ -152,6 +136,24 @@
                     x:Name="DialogPrimaryBtnText"
                     PlaceholderText="Primary button text"
                     Text="OK" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="SecondaryButtonText" />
+                <TextBox
+                    x:Name="DialogSecondaryBtnText"
+                    PlaceholderText="Secondary button text (empty to hide)" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="CloseButtonText" />
+                <TextBox
+                    x:Name="DialogCloseBtnText"
+                    PlaceholderText="Close button text"
+                    Text="Cancel" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="DefaultButton" />
+                <ComboBox
+                    x:Name="DialogDefaultBtnCombo"
+                    SelectedIndex="1">
+                    <ComboBoxItem Content="None" />
+                    <ComboBoxItem Content="Primary" />
+                    <ComboBoxItem Content="Secondary" />
+                    <ComboBoxItem Content="Close" />
+                </ComboBox>
 
                 <!--  Flyout Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="Flyout" />
@@ -166,6 +168,47 @@
                     <ComboBoxItem Content="Right" />
                     <ComboBoxItem Content="Full" />
                 </ComboBox>
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="ShowMode" />
+                <ComboBox
+                    x:Name="FlyoutShowModeCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnFlyoutShowModeChanged">
+                    <ComboBoxItem Content="Standard" />
+                    <ComboBoxItem Content="Transient" />
+                    <ComboBoxItem Content="TransientWithDismissOnPointerMoveAway" />
+                </ComboBox>
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Flyout TextBox Width" />
+                <Slider
+                    x:Name="FlyoutWidthSlider"
+                    Width="200"
+                    Minimum="100"
+                    Maximum="400"
+                    StepFrequency="10"
+                    Value="220"
+                    ValueChanged="OnFlyoutWidthChanged" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="LightDismissOverlayMode" />
+                <ComboBox
+                    x:Name="FlyoutLightDismissCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnFlyoutLightDismissChanged">
+                    <ComboBoxItem Content="Auto" />
+                    <ComboBoxItem Content="On" />
+                    <ComboBoxItem Content="Off" />
+                </ComboBox>
+
+                <!--  MenuFlyout Properties  -->
+                <TextBlock Style="{StaticResource PropGroupStyle}" Text="MenuFlyout" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Placement" />
+                <ComboBox
+                    x:Name="MenuFlyoutPlacementCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnMenuFlyoutPlacementChanged">
+                    <ComboBoxItem Content="Top" />
+                    <ComboBoxItem Content="Bottom" />
+                    <ComboBoxItem Content="Left" />
+                    <ComboBoxItem Content="Right" />
+                    <ComboBoxItem Content="Full" />
+                </ComboBox>
 
                 <!--  TeachingTip Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="TeachingTip" />
@@ -174,6 +217,31 @@
                     Header="IsLightDismissEnabled"
                     IsOn="True"
                     Toggled="OnTeachingTipLightDismissToggled" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PreferredPlacement" />
+                <ComboBox
+                    x:Name="TeachingTipPlacementCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnTeachingTipPlacementChanged">
+                    <ComboBoxItem Content="Auto" />
+                    <ComboBoxItem Content="Top" />
+                    <ComboBoxItem Content="Bottom" />
+                    <ComboBoxItem Content="Left" />
+                    <ComboBoxItem Content="Right" />
+                    <ComboBoxItem Content="TopLeft" />
+                    <ComboBoxItem Content="TopRight" />
+                    <ComboBoxItem Content="BottomLeft" />
+                    <ComboBoxItem Content="BottomRight" />
+                </ComboBox>
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Title" />
+                <TextBox
+                    x:Name="TeachingTipTitleBox"
+                    Text="Tip"
+                    TextChanged="OnTeachingTipTitleChanged" />
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Subtitle" />
+                <TextBox
+                    x:Name="TeachingTipSubtitleBox"
+                    Text="This is a teaching tip"
+                    TextChanged="OnTeachingTipSubtitleChanged" />
 
             </StackPanel>
         </ScrollViewer>

@@ -5,13 +5,13 @@
 
     <Grid ColumnSpacing="16">
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="320" />
         </Grid.ColumnDefinitions>
 
         <!--  ===== Left: Demo Area =====  -->
         <ScrollViewer Grid.Column="0">
-            <StackPanel Margin="16" Spacing="24">
+            <StackPanel Margin="16" Spacing="16">
 
                 <!--  Image Block  -->
                 <Border
@@ -24,6 +24,7 @@
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Image" />
 
                         <Border
+                            x:Name="DemoImageBorder"
                             Padding="4"
                             HorizontalAlignment="Left"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -77,7 +78,7 @@
 
         <!--  ===== Right: Property Editors =====  -->
         <ScrollViewer Grid.Column="1">
-            <StackPanel Margin="0,16,16,16" Spacing="20">
+            <StackPanel Margin="0,16,16,16" Spacing="12">
 
                 <!--  Image Properties  -->
                 <Border
@@ -122,6 +123,32 @@
                             <ComboBoxItem Content="Uniform" />
                             <ComboBoxItem Content="UniformToFill" />
                         </ComboBox>
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Opacity" />
+                        <TextBlock
+                            x:Name="ImageOpacityLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Opacity: 1.0" />
+                        <Slider
+                            x:Name="ImageOpacitySlider"
+                            Maximum="1"
+                            Minimum="0"
+                            StepFrequency="0.1"
+                            ValueChanged="ImageOpacitySlider_ValueChanged"
+                            Value="1" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="CornerRadius" />
+                        <TextBlock
+                            x:Name="ImageCornerRadiusLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="CornerRadius: 0" />
+                        <Slider
+                            x:Name="ImageCornerRadiusSlider"
+                            Maximum="40"
+                            Minimum="0"
+                            StepFrequency="2"
+                            ValueChanged="ImageCornerRadiusSlider_ValueChanged"
+                            Value="0" />
                     </StackPanel>
                 </Border>
 
@@ -169,6 +196,32 @@
                             x:Name="IsGroupSwitch"
                             IsOn="False"
                             Toggled="IsGroupSwitch_Toggled" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="BadgeNumber" />
+                        <TextBlock
+                            x:Name="BadgeNumberLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="BadgeNumber: 0" />
+                        <Slider
+                            x:Name="BadgeNumberSlider"
+                            Maximum="99"
+                            Minimum="0"
+                            StepFrequency="1"
+                            ValueChanged="BadgeNumberSlider_ValueChanged"
+                            Value="0" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="BadgeGlyph" />
+                        <TextBox
+                            x:Name="BadgeGlyphBox"
+                            PlaceholderText="如 Accept 或 ErrorBadge"
+                            TextChanged="BadgeGlyphBox_TextChanged" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="ProfilePicture" />
+
+                        <TextBlock Style="{StaticResource PropLabelStyle}" Text="Initials" />
+                        <TextBox
+                            x:Name="InitialsBox"
+                            IsReadOnly="True" />
                     </StackPanel>
                 </Border>
 

@@ -15,6 +15,19 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
+    //  Control → Config reverse bindings 
+    void DemoCheckBox_Changed(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void DemoToggleSwitch_Toggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void DemoToggleButton_Changed(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
     //  Button property editors 
     void EditorBtnContent_TextChanged(
         Windows::Foundation::IInspectable const& sender,
@@ -32,6 +45,22 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
+    void EditorBtnCornerRadius_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void EditorBtnFontSize_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void EditorBtnAlignment_SelectionChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
+    void EditorBtnTooltip_TextChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+
     //  ToggleButton property editors 
     void EditorToggleContent_TextChanged(
         Windows::Foundation::IInspectable const& sender,
@@ -40,6 +69,22 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
     void EditorToggleChecked_Toggled(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void EditorToggleEnabled_Toggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void EditorToggleWidth_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void EditorToggleHeight_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void EditorToggleAlignment_SelectionChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
     //  SplitButton property editors 
     void EditorSplitWidth_ValueChanged(
@@ -80,6 +125,14 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
+    void EditorRepeatContent_TextChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+
+    void EditorRepeatAlignment_SelectionChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
     //  HyperlinkButton property editors 
     void EditorHyperlinkWidth_ValueChanged(
         Windows::Foundation::IInspectable const& sender,
@@ -98,13 +151,25 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorCheckChecked_Toggled(
+    void EditorCheckChecked_SelectionChanged(
         Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
     void EditorCheckThreeState_Toggled(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void EditorCheckEnabled_Toggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void EditorCheckWidth_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void EditorCheckFontSize_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
     //  RadioButtons property editors 
     void EditorRadioWidth_ValueChanged(
@@ -119,6 +184,10 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
+    void EditorRadioAlignment_SelectionChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
     //  ToggleSwitch property editors 
     void EditorSwitchHeader_TextChanged(
         Windows::Foundation::IInspectable const& sender,
@@ -128,7 +197,16 @@ struct ButtonPage : ButtonPageT<ButtonPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
+    void EditorSwitchEnabled_Toggled(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void EditorSwitchWidth_ValueChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
 private:
+    bool m_updatingButton{ false };
     int32_t m_repeatCount{ 0 };
 };
 } // namespace winrt::gallery::implementation

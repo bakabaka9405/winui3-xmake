@@ -6,14 +6,14 @@
     <ScrollViewer>
         <Grid Margin="16" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="6*" />
-                <ColumnDefinition Width="4*" />
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!--  ═══════════════════════════════════════════  -->
             <!--  Left: Control Demos  -->
             <!--  ═══════════════════════════════════════════  -->
-            <StackPanel Grid.Column="0" Spacing="20">
+            <StackPanel Grid.Column="0" Spacing="16">
 
                 <!--  1. Button  -->
                 <Border
@@ -25,6 +25,7 @@
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="Button" />
                         <Button
                             x:Name="DemoButton"
+                            Height="32"
                             MinWidth="120"
                             HorizontalAlignment="Left"
                             Click="DemoButton_Click"
@@ -48,7 +49,9 @@
                             x:Name="DemoToggleButton"
                             MinWidth="120"
                             HorizontalAlignment="Left"
-                            Content="Toggle" />
+                            Checked="DemoToggleButton_Changed"
+                            Content="Toggle"
+                            Unchecked="DemoToggleButton_Changed" />
                         <TextBlock
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="A button that can be toggled between two states."
@@ -173,7 +176,13 @@
                     CornerRadius="8">
                     <StackPanel Spacing="12">
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="CheckBox" />
-                        <CheckBox x:Name="DemoCheckBox" Content="Check me" />
+                        <CheckBox
+                            x:Name="DemoCheckBox"
+                            Checked="DemoCheckBox_Changed"
+                            MinHeight="32"
+                            Unchecked="DemoCheckBox_Changed"
+                            Indeterminate="DemoCheckBox_Changed"
+                            Content="Check me" />
                         <TextBlock
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="A checkbox that supports two or three states."
@@ -212,7 +221,10 @@
                     CornerRadius="8">
                     <StackPanel Spacing="12">
                         <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="ToggleSwitch" />
-                        <ToggleSwitch x:Name="DemoToggleSwitch" Header="Toggle Switch" />
+                        <ToggleSwitch
+                            x:Name="DemoToggleSwitch"
+                            Header="Toggle Switch"
+                            Toggled="DemoToggleSwitch_Toggled" />
                         <TextBlock
                             Style="{StaticResource CaptionTextBlockStyle}"
                             Text="A switch control for binary on/off settings."
@@ -242,18 +254,18 @@
             <!--  ═══════════════════════════════════════════  -->
             <!--  Right: Property Editors  -->
             <!--  ═══════════════════════════════════════════  -->
-            <ScrollViewer Grid.Column="1">
+            <ScrollViewer Grid.Column="1" Margin="0,16,16,16">
                 <StackPanel Spacing="12">
 
                     <!--  Button Settings  -->
                     <Expander Header="Button Settings" IsExpanded="True">
                         <StackPanel Spacing="10">
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Content" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Content" />
                             <TextBox
                                 x:Name="EditorBtnContent"
                                 Text="Click Me"
                                 TextChanged="EditorBtnContent_TextChanged" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <TextBlock
                                 x:Name="BtnWidthLabel"
                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
@@ -271,7 +283,7 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorBtnEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Visibility" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Visibility" />
                             <ComboBox
                                 x:Name="EditorBtnVisibility"
                                 SelectedIndex="0"
@@ -279,13 +291,55 @@
                                 <ComboBoxItem Content="Visible" />
                                 <ComboBoxItem Content="Collapsed" />
                             </ComboBox>
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="CornerRadius" />
+                            <TextBlock
+                                x:Name="BtnCornerRadiusLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="0" />
+                            <Slider
+                                x:Name="EditorBtnCornerRadius"
+                                Maximum="20"
+                                Minimum="0"
+                                StepFrequency="1"
+                                ValueChanged="EditorBtnCornerRadius_ValueChanged"
+                                Value="0" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="FontSize" />
+                            <TextBlock
+                                x:Name="BtnFontSizeLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="14" />
+                            <Slider
+                                x:Name="EditorBtnFontSize"
+                                Maximum="36"
+                                Minimum="8"
+                                StepFrequency="1"
+                                ValueChanged="EditorBtnFontSize_ValueChanged"
+                                Value="14" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="HorizontalAlignment" />
+                            <ComboBox
+                                x:Name="EditorBtnAlignment"
+                                SelectedIndex="1"
+                                SelectionChanged="EditorBtnAlignment_SelectionChanged">
+                                <ComboBoxItem Content="Stretch" />
+                                <ComboBoxItem Content="Left" />
+                                <ComboBoxItem Content="Center" />
+                                <ComboBoxItem Content="Right" />
+                            </ComboBox>
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Tooltip" />
+                            <TextBox
+                                x:Name="EditorBtnTooltip"
+                                PlaceholderText="Enter tooltip text"
+                                Text=""
+                                TextChanged="EditorBtnTooltip_TextChanged" />
                         </StackPanel>
                     </Expander>
 
                     <!--  ToggleButton Settings  -->
                     <Expander Header="ToggleButton Settings">
                         <StackPanel Spacing="10">
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Content" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Content" />
                             <TextBox
                                 x:Name="EditorToggleContent"
                                 Text="Toggle"
@@ -294,6 +348,47 @@
                                 x:Name="EditorToggleChecked"
                                 Header="IsChecked"
                                 Toggled="EditorToggleChecked_Toggled" />
+                            <ToggleSwitch
+                                x:Name="EditorToggleEnabled"
+                                Header="IsEnabled"
+                                IsOn="True"
+                                Toggled="EditorToggleEnabled_Toggled" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                            <TextBlock
+                                x:Name="TglWidthLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="120" />
+                            <Slider
+                                x:Name="EditorToggleWidth"
+                                Maximum="400"
+                                Minimum="50"
+                                StepFrequency="10"
+                                ValueChanged="EditorToggleWidth_ValueChanged"
+                                Value="120" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
+                            <TextBlock
+                                x:Name="TglHeightLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="32" />
+                            <Slider
+                                x:Name="EditorToggleHeight"
+                                Maximum="200"
+                                Minimum="20"
+                                StepFrequency="4"
+                                ValueChanged="EditorToggleHeight_ValueChanged"
+                                Value="32" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="HorizontalAlignment" />
+                            <ComboBox
+                                x:Name="EditorToggleAlignment"
+                                SelectedIndex="1"
+                                SelectionChanged="EditorToggleAlignment_SelectionChanged">
+                                <ComboBoxItem Content="Stretch" />
+                                <ComboBoxItem Content="Left" />
+                                <ComboBoxItem Content="Center" />
+                                <ComboBoxItem Content="Right" />
+                            </ComboBox>
                         </StackPanel>
                     </Expander>
 
@@ -305,7 +400,7 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorSplitEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <Slider
                                 x:Name="EditorSplitWidth"
                                 Maximum="400"
@@ -313,7 +408,7 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorSplitWidth_ValueChanged"
                                 Value="120" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Height" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
                             <Slider
                                 x:Name="EditorSplitHeight"
                                 Maximum="200"
@@ -332,7 +427,7 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorDropEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <Slider
                                 x:Name="EditorDropWidth"
                                 Maximum="400"
@@ -340,7 +435,7 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorDropWidth_ValueChanged"
                                 Value="120" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Height" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
                             <Slider
                                 x:Name="EditorDropHeight"
                                 Maximum="200"
@@ -359,7 +454,12 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorRepeatEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Content" />
+                            <TextBox
+                                x:Name="EditorRepeatContent"
+                                Text="Hold Me"
+                                TextChanged="EditorRepeatContent_TextChanged" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <Slider
                                 x:Name="EditorRepeatWidth"
                                 Maximum="400"
@@ -367,7 +467,7 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorRepeatWidth_ValueChanged"
                                 Value="120" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Height" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
                             <Slider
                                 x:Name="EditorRepeatHeight"
                                 Maximum="200"
@@ -375,6 +475,16 @@
                                 StepFrequency="4"
                                 ValueChanged="EditorRepeatHeight_ValueChanged"
                                 Value="40" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="HorizontalAlignment" />
+                            <ComboBox
+                                x:Name="EditorRepeatAlignment"
+                                SelectedIndex="1"
+                                SelectionChanged="EditorRepeatAlignment_SelectionChanged">
+                                <ComboBoxItem Content="Stretch" />
+                                <ComboBoxItem Content="Left" />
+                                <ComboBoxItem Content="Center" />
+                                <ComboBoxItem Content="Right" />
+                            </ComboBox>
                         </StackPanel>
                     </Expander>
 
@@ -386,7 +496,7 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorHyperlinkEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <Slider
                                 x:Name="EditorHyperlinkWidth"
                                 Maximum="400"
@@ -394,7 +504,7 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorHyperlinkWidth_ValueChanged"
                                 Value="120" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Height" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
                             <Slider
                                 x:Name="EditorHyperlinkHeight"
                                 Maximum="200"
@@ -408,19 +518,55 @@
                     <!--  CheckBox Settings  -->
                     <Expander Header="CheckBox Settings">
                         <StackPanel Spacing="10">
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Content" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Content" />
                             <TextBox
                                 x:Name="EditorCheckContent"
                                 Text="Check me"
                                 TextChanged="EditorCheckContent_TextChanged" />
-                            <ToggleSwitch
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="IsChecked" />
+                            <ComboBox
                                 x:Name="EditorCheckChecked"
-                                Header="IsChecked"
-                                Toggled="EditorCheckChecked_Toggled" />
+                                SelectedIndex="0"
+                                SelectionChanged="EditorCheckChecked_SelectionChanged">
+                                <ComboBoxItem Content="Unchecked" />
+                                <ComboBoxItem Content="Checked" />
+                                <ComboBoxItem Content="Indeterminate" />
+                            </ComboBox>
                             <ToggleSwitch
                                 x:Name="EditorCheckThreeState"
                                 Header="IsThreeState"
                                 Toggled="EditorCheckThreeState_Toggled" />
+                            <ToggleSwitch
+                                x:Name="EditorCheckEnabled"
+                                Header="IsEnabled"
+                                IsOn="True"
+                                Toggled="EditorCheckEnabled_Toggled" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                            <TextBlock
+                                x:Name="ChkWidthLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="120" />
+                            <Slider
+                                x:Name="EditorCheckWidth"
+                                Maximum="400"
+                                Minimum="50"
+                                StepFrequency="10"
+                                ValueChanged="EditorCheckWidth_ValueChanged"
+                                Value="120" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="FontSize" />
+                            <TextBlock
+                                x:Name="ChkFontSizeLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="14" />
+                            <Slider
+                                x:Name="EditorCheckFontSize"
+                                Maximum="24"
+                                Minimum="8"
+                                StepFrequency="1"
+                                ValueChanged="EditorCheckFontSize_ValueChanged"
+                                Value="14" />
                         </StackPanel>
                     </Expander>
 
@@ -432,7 +578,7 @@
                                 Header="IsEnabled"
                                 IsOn="True"
                                 Toggled="EditorRadioEnabled_Toggled" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Width" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                             <Slider
                                 x:Name="EditorRadioWidth"
                                 Maximum="500"
@@ -440,7 +586,7 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorRadioWidth_ValueChanged"
                                 Value="280" />
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Height" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
                             <Slider
                                 x:Name="EditorRadioHeight"
                                 Maximum="300"
@@ -448,13 +594,23 @@
                                 StepFrequency="10"
                                 ValueChanged="EditorRadioHeight_ValueChanged"
                                 Value="100" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="HorizontalAlignment" />
+                            <ComboBox
+                                x:Name="EditorRadioAlignment"
+                                SelectedIndex="1"
+                                SelectionChanged="EditorRadioAlignment_SelectionChanged">
+                                <ComboBoxItem Content="Stretch" />
+                                <ComboBoxItem Content="Left" />
+                                <ComboBoxItem Content="Center" />
+                                <ComboBoxItem Content="Right" />
+                            </ComboBox>
                         </StackPanel>
                     </Expander>
 
                     <!--  ToggleSwitch Settings  -->
                     <Expander Header="ToggleSwitch Settings">
                         <StackPanel Spacing="10">
-                            <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Header" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Header" />
                             <TextBox
                                 x:Name="EditorSwitchHeader"
                                 Text="Toggle Switch"
@@ -463,6 +619,24 @@
                                 x:Name="EditorSwitchOn"
                                 Header="IsOn"
                                 Toggled="EditorSwitchOn_Toggled" />
+                            <ToggleSwitch
+                                x:Name="EditorSwitchEnabled"
+                                Header="IsEnabled"
+                                IsOn="True"
+                                Toggled="EditorSwitchEnabled_Toggled" />
+                            <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                            <TextBlock
+                                x:Name="SwWidthLabel"
+                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="120" />
+                            <Slider
+                                x:Name="EditorSwitchWidth"
+                                Maximum="400"
+                                Minimum="50"
+                                StepFrequency="10"
+                                ValueChanged="EditorSwitchWidth_ValueChanged"
+                                Value="120" />
                         </StackPanel>
                     </Expander>
 

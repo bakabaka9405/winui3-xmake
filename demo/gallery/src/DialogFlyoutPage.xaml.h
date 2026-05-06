@@ -20,7 +20,23 @@ struct DialogFlyoutPage : DialogFlyoutPageT<DialogFlyoutPage> {
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    //  MenuFlyout 
+    void OnFlyoutShowModeChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
+    void OnFlyoutWidthChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+
+    void OnFlyoutLightDismissChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
+    //  MenuFlyout — placement & item click handlers
+    void OnMenuFlyoutPlacementChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
     void OnCutClick(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -41,6 +57,18 @@ struct DialogFlyoutPage : DialogFlyoutPageT<DialogFlyoutPage> {
     void OnTeachingTipLightDismissToggled(
         Windows::Foundation::IInspectable const& sender,
         Microsoft::UI::Xaml::RoutedEventArgs const& args);
+
+    void OnTeachingTipPlacementChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+
+    void OnTeachingTipTitleChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+
+    void OnTeachingTipSubtitleChanged(
+        Windows::Foundation::IInspectable const& sender,
+        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 };
 } // namespace winrt::gallery::implementation
 

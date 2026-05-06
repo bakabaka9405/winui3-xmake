@@ -88,11 +88,35 @@ void MenuPage::ShareButton_Click(wf::IInspectable const&, mux::RoutedEventArgs c
 }
 
 // ============================================================================
-// Property editor handlers
+// CommandBar bidirectional binding — overflow open/close → sync ToggleSwitch
+// ============================================================================
+
+void MenuPage::DemoCommandBar_Opening(wf::IInspectable const&, wf::IInspectable const&) {
+    if (m_updatingMenu) return;
+
+    m_updatingMenu = true;
+    OpenSwitch().IsOn(true);
+    m_updatingMenu = false;
+}
+
+void MenuPage::DemoCommandBar_Closed(wf::IInspectable const&, wf::IInspectable const&) {
+    if (m_updatingMenu) return;
+
+    m_updatingMenu = true;
+    OpenSwitch().IsOn(false);
+    m_updatingMenu = false;
+}
+
+// ============================================================================
+// Property editor handlers — CommandBar
 // ============================================================================
 
 void MenuPage::OpenSwitch_Toggled(wf::IInspectable const&, mux::RoutedEventArgs const&) {
+    if (m_updatingMenu) return;
+
+    m_updatingMenu = true;
     DemoCommandBar().IsOpen(OpenSwitch().IsOn());
+    m_updatingMenu = false;
 }
 
 void MenuPage::LabelPositionCombo_SelectionChanged(
@@ -100,7 +124,6 @@ void MenuPage::LabelPositionCombo_SelectionChanged(
     muxc::SelectionChangedEventArgs const&) {
     auto pos = muxc::CommandBarDefaultLabelPosition::Right;
 
-    // Map combo index to CommandBarDefaultLabelPosition
     switch (LabelPositionCombo().SelectedIndex()) {
     case 0:
         pos = muxc::CommandBarDefaultLabelPosition::Right;
@@ -123,7 +146,6 @@ void MenuPage::OverflowVisibilityCombo_SelectionChanged(
     muxc::SelectionChangedEventArgs const&) {
     auto vis = muxc::CommandBarOverflowButtonVisibility::Auto;
 
-    // Map combo index to CommandBarOverflowButtonVisibility
     switch (OverflowVisibilityCombo().SelectedIndex()) {
     case 0:
         vis = muxc::CommandBarOverflowButtonVisibility::Auto;
@@ -139,6 +161,77 @@ void MenuPage::OverflowVisibilityCombo_SelectionChanged(
     }
 
     DemoCommandBar().OverflowButtonVisibility(vis);
+}
+
+void MenuPage::StickySwitch_Toggled(wf::IInspectable const&, mux::RoutedEventArgs const&) {
+    DemoCommandBar().IsSticky(StickySwitch().IsOn());
+}
+
+void MenuPage::ClosedDisplayModeCombo_SelectionChanged(
+    wf::IInspectable const&,
+    muxc::SelectionChangedEventArgs const&) {
+    auto mode = muxc::AppBarClosedDisplayMode::Compact;
+
+    switch (ClosedDisplayModeCombo().SelectedIndex()) {
+    case 0:
+        mode = muxc::AppBarClosedDisplayMode::Compact;
+        break;
+    case 1:
+        mode = muxc::AppBarClosedDisplayMode::Minimal;
+        break;
+    case 2:
+        mode = muxc::AppBarClosedDisplayMode::Hidden;
+        break;
+    default:
+        break;
+    }
+
+    DemoCommandBar().ClosedDisplayMode(mode);
+}
+
+void MenuPage::CmdBarWidthSlider_ValueChanged(
+    wf::IInspectable const&,
+    muxp::RangeBaseValueChangedEventArgs const& args) {
+    auto const w = static_cast<double>(args.NewValue());
+
+    CmdBarWidthLabel().Text(winrt::to_hstring(static_cast<int>(w)));
+    DemoCommandBar().Width(w);
+}
+
+// ============================================================================
+// Property editor handlers — MenuBar
+// ============================================================================
+
+void MenuPage::MenuBarEnabledSwitch_Toggled(wf::IInspectable const&, mux::RoutedEventArgs const&) {
+    DemoMenuBar().IsEnabled(MenuBarEnabledSwitch().IsOn());
+}
+
+void MenuPage::MenuBarFlowDirectionCombo_SelectionChanged(
+    wf::IInspectable const&,
+    muxc::SelectionChangedEventArgs const&) {
+    auto dir = mux::FlowDirection::LeftToRight;
+
+    switch (MenuBarFlowDirectionCombo().SelectedIndex()) {
+    case 0:
+        dir = mux::FlowDirection::LeftToRight;
+        break;
+    case 1:
+        dir = mux::FlowDirection::RightToLeft;
+        break;
+    default:
+        break;
+    }
+
+    DemoMenuBar().FlowDirection(dir);
+}
+
+void MenuPage::MenuBarWidthSlider_ValueChanged(
+    wf::IInspectable const&,
+    muxp::RangeBaseValueChangedEventArgs const& args) {
+    auto const w = static_cast<double>(args.NewValue());
+
+    MenuBarWidthLabel().Text(winrt::to_hstring(static_cast<int>(w)));
+    DemoMenuBar().Width(w);
 }
 
 } // namespace winrt::gallery::implementation

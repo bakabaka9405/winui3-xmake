@@ -1,4 +1,4 @@
--- Hello World WinUI3 demo
+-- Camera WinUI3 demo
 target("demo.camera")
     add_rules("winui3.app", "demo.common")
     set_values("winui3.namespace", "camera")

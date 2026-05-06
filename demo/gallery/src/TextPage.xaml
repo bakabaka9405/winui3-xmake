@@ -2,18 +2,6 @@
     x:Class="gallery.TextPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Page.Resources>
-        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,16,0,8" />
-        </Style>
-        <Style x:Key="PropGroupStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,12,0,4" />
-        </Style>
-    </Page.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*" />
@@ -22,7 +10,7 @@
 
         <!--  ═══ Left: Demo Area ═══  -->
         <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="8">
+            <StackPanel Spacing="16">
 
                 <!--  TextBox  -->
                 <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="TextBox" />
@@ -31,7 +19,8 @@
                     MinWidth="300"
                     HorizontalAlignment="Left"
                     Header="Basic TextBox"
-                    PlaceholderText="Enter text..." />
+                    PlaceholderText="Enter text..."
+                    TextChanged="DemoTextBox_TextChanged" />
 
                 <!--  Multiline TextBox  -->
                 <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="Multiline TextBox" />
@@ -63,7 +52,8 @@
                     Maximum="100"
                     Minimum="0"
                     SpinButtonPlacementMode="Inline"
-                    Value="50" />
+                    Value="50"
+                    ValueChanged="DemoNumberBox_ValueChanged" />
 
                 <!--  RichEditBox  -->
                 <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="RichEditBox" />
@@ -90,19 +80,15 @@
             Grid.Column="1"
             Padding="16,16"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="4">
+            <StackPanel Spacing="8">
 
                 <!--  TextBox Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="TextBox" />
-                <TextBlock
-                    Margin="0,4,0,0"
-                    FontSize="12"
-                    Text="Text" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Text" />
                 <TextBox x:Name="TextBoxTextEditor" TextChanged="OnTextBoxTextChanged" />
-                <TextBlock
-                    Margin="0,8,0,0"
-                    FontSize="12"
-                    Text="Width" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
                 <Slider
                     x:Name="TextBoxWidthSlider"
                     Maximum="600"
@@ -110,26 +96,74 @@
                     StepFrequency="10"
                     ValueChanged="OnTextBoxWidthChanged"
                     Value="300" />
+
                 <ToggleSwitch
                     x:Name="TextBoxReadOnlyToggle"
                     Margin="0,8,0,0"
                     Header="IsReadOnly"
                     Toggled="OnTextBoxReadOnlyToggled" />
-                <TextBlock
-                    Margin="0,8,0,0"
-                    FontSize="12"
-                    Text="Header" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Header" />
                 <TextBox
                     x:Name="TextBoxHeaderEditor"
                     Text="Basic TextBox"
                     TextChanged="OnTextBoxHeaderChanged" />
 
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PlaceholderText" />
+                <TextBox
+                    x:Name="TextBoxPlaceholderEditor"
+                    Text="Enter text..."
+                    TextChanged="OnTextBoxPlaceholderChanged" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="MaxLength" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="TextBoxMaxLengthSlider"
+                        Width="160"
+                        Maximum="500"
+                        Minimum="0"
+                        StepFrequency="10"
+                        ValueChanged="OnTextBoxMaxLengthChanged"
+                        Value="0" />
+                    <TextBlock
+                        x:Name="TextBoxMaxLengthLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="0" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="FontSize" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="TextBoxFontSizeSlider"
+                        Width="160"
+                        Maximum="36"
+                        Minimum="8"
+                        StepFrequency="1"
+                        ValueChanged="OnTextBoxFontSizeChanged"
+                        Value="14" />
+                    <TextBlock
+                        x:Name="TextBoxFontSizeLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="14" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="TextAlignment" />
+                <ComboBox
+                    x:Name="TextBoxTextAlignmentCombo"
+                    SelectedIndex="0"
+                    SelectionChanged="OnTextBoxTextAlignmentChanged">
+                    <ComboBoxItem Content="Left" />
+                    <ComboBoxItem Content="Center" />
+                    <ComboBoxItem Content="Right" />
+                    <ComboBoxItem Content="Justify" />
+                </ComboBox>
+
                 <!--  PasswordBox Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="PasswordBox" />
-                <TextBlock
-                    Margin="0,4,0,0"
-                    FontSize="12"
-                    Text="PasswordRevealMode" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PasswordRevealMode" />
                 <ComboBox
                     x:Name="PasswordRevealModeCombo"
                     SelectedIndex="0"
@@ -138,6 +172,7 @@
                     <ComboBoxItem Content="Hidden" />
                     <ComboBoxItem Content="Visible" />
                 </ComboBox>
+
                 <ToggleSwitch
                     x:Name="PasswordRevealButtonToggle"
                     Margin="0,8,0,0"
@@ -145,12 +180,33 @@
                     IsOn="True"
                     Toggled="OnPasswordRevealButtonToggled" />
 
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="PasswordBoxWidthSlider"
+                        Width="160"
+                        Maximum="600"
+                        Minimum="100"
+                        StepFrequency="10"
+                        ValueChanged="OnPasswordBoxWidthChanged"
+                        Value="200" />
+                    <TextBlock
+                        x:Name="PasswordBoxWidthLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="200" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PlaceholderText" />
+                <TextBox
+                    x:Name="PasswordBoxPlaceholderEditor"
+                    Text="Password"
+                    TextChanged="OnPasswordBoxPlaceholderChanged" />
+
                 <!--  NumberBox Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="NumberBox" />
-                <TextBlock
-                    Margin="0,4,0,0"
-                    FontSize="12"
-                    Text="Value" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Value" />
                 <Slider
                     x:Name="NumberBoxValueSlider"
                     Maximum="100"
@@ -158,10 +214,8 @@
                     StepFrequency="1"
                     ValueChanged="OnNumberBoxValueChanged"
                     Value="50" />
-                <TextBlock
-                    Margin="0,8,0,0"
-                    FontSize="12"
-                    Text="SpinButtonPlacementMode" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="SpinButtonPlacementMode" />
                 <ComboBox
                     x:Name="SpinButtonModeCombo"
                     SelectedIndex="0"
@@ -171,13 +225,66 @@
                     <ComboBoxItem Content="Hidden" />
                 </ComboBox>
 
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Minimum" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="NumberBoxMinSlider"
+                        Width="160"
+                        Maximum="100"
+                        Minimum="0"
+                        StepFrequency="1"
+                        ValueChanged="OnNumberBoxMinChanged"
+                        Value="0" />
+                    <TextBlock
+                        x:Name="NumberBoxMinLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="0" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Maximum" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="NumberBoxMaxSlider"
+                        Width="160"
+                        Maximum="100"
+                        Minimum="0"
+                        StepFrequency="1"
+                        ValueChanged="OnNumberBoxMaxChanged"
+                        Value="100" />
+                    <TextBlock
+                        x:Name="NumberBoxMaxLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="100" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="NumberBoxWidthSlider"
+                        Width="160"
+                        Maximum="400"
+                        Minimum="60"
+                        StepFrequency="10"
+                        ValueChanged="OnNumberBoxWidthChanged"
+                        Value="120" />
+                    <TextBlock
+                        x:Name="NumberBoxWidthLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="120" />
+                </StackPanel>
+
                 <!--  RichEditBox Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="RichEditBox" />
+
                 <ToggleSwitch
                     x:Name="RichEditReadOnlyToggle"
                     Margin="0,4,0,0"
                     Header="IsReadOnly"
                     Toggled="OnRichEditReadOnlyToggled" />
+
                 <ToggleSwitch
                     x:Name="RichEditSpellCheckToggle"
                     Margin="0,8,0,0"
@@ -185,13 +292,71 @@
                     IsOn="True"
                     Toggled="OnRichEditSpellCheckToggled" />
 
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Height" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="RichEditHeightSlider"
+                        Width="160"
+                        Maximum="300"
+                        Minimum="40"
+                        StepFrequency="10"
+                        ValueChanged="OnRichEditHeightChanged"
+                        Value="100" />
+                    <TextBlock
+                        x:Name="RichEditHeightLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="100" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="RichEditWidthSlider"
+                        Width="160"
+                        Maximum="600"
+                        Minimum="100"
+                        StepFrequency="10"
+                        ValueChanged="OnRichEditWidthChanged"
+                        Value="200" />
+                    <TextBlock
+                        x:Name="RichEditWidthLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="200" />
+                </StackPanel>
+
                 <!--  AutoSuggestBox Properties  -->
                 <TextBlock Style="{StaticResource PropGroupStyle}" Text="AutoSuggestBox" />
+
                 <ToggleSwitch
                     x:Name="AutoSuggestUpdateToggle"
                     Margin="0,4,0,0"
                     Header="UpdateTextOnSelect"
                     Toggled="OnAutoSuggestUpdateToggled" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="PlaceholderText" />
+                <TextBox
+                    x:Name="AutoSuggestPlaceholderEditor"
+                    Text="Search..."
+                    TextChanged="OnAutoSuggestPlaceholderChanged" />
+
+                <TextBlock Style="{StaticResource PropLabelStyle}" Text="Width" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Slider
+                        x:Name="AutoSuggestWidthSlider"
+                        Width="160"
+                        Maximum="600"
+                        Minimum="100"
+                        StepFrequency="10"
+                        ValueChanged="OnAutoSuggestWidthChanged"
+                        Value="300" />
+                    <TextBlock
+                        x:Name="AutoSuggestWidthLabel"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Text="300" />
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>

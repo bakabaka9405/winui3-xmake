@@ -70,7 +70,7 @@ winui3-xmake/
 
 关键文件：
 
-- `common/main.cpp`：在 XAML 生成的 `wWinMain` 运行前初始化 Windows App SDK Bootstrap。
+- `common/main.cpp`：提供手写 `wWinMain`，初始化 Windows App SDK Bootstrap，并集中注册应用级 `UnhandledException` 处理器。
 - `rules/winui3.lua`：定义 `winui3.app` 规则，配置编译、链接、代码生成和运行时文件复制。
 - `rules/demo.lua`：定义 `demo.common` 规则，为示例目标挂载共享入口点、预编译头和清单。
 - `rules/dist.lua`：定义 `mode.dist` 分发构建模式，配置优化、符号剥离和静态运行库。
@@ -129,4 +129,4 @@ target("demo.<name>")
 
 ## 命名空间约定
 
-每个示例的根命名空间由 `set_values("winui3.namespace", ...)` 指定。修改命名空间时，请同步检查 IDL、XAML 的 `x:Class` 和手写 C++ 命名空间；应用入口由 XAML 生成代码提供。
+每个示例的根命名空间由 `set_values("winui3.namespace", ...)` 指定。修改命名空间时，请同步检查 IDL、XAML 的 `x:Class` 和手写 C++ 命名空间；构建规则会将该命名空间传给共享 `wWinMain`，用于实例化对应示例的 `App`。

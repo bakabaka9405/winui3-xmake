@@ -23,9 +23,24 @@ struct MenuPage : MenuPageT<MenuPage> {
     void SettingsButton_Click(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
     void ShareButton_Click(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
 
+    // CommandBar bidirectional binding
+    void DemoCommandBar_Opening(Windows::Foundation::IInspectable const&, Windows::Foundation::IInspectable const&);
+    void DemoCommandBar_Closed(Windows::Foundation::IInspectable const&, Windows::Foundation::IInspectable const&);
+
     void OpenSwitch_Toggled(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
     void LabelPositionCombo_SelectionChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
     void OverflowVisibilityCombo_SelectionChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
+
+    void StickySwitch_Toggled(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+    void ClosedDisplayModeCombo_SelectionChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
+    void CmdBarWidthSlider_ValueChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const&);
+
+    void MenuBarEnabledSwitch_Toggled(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::RoutedEventArgs const&);
+    void MenuBarFlowDirectionCombo_SelectionChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const&);
+    void MenuBarWidthSlider_ValueChanged(Windows::Foundation::IInspectable const&, Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const&);
+
+private:
+    bool m_updatingMenu{ false };
 };
 } // namespace winrt::gallery::implementation
 

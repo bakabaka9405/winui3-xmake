@@ -5,13 +5,13 @@
 
     <Grid ColumnSpacing="16">
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="320" />
         </Grid.ColumnDefinitions>
 
         <!--  ===== Left: Demo Area =====  -->
         <ScrollViewer Grid.Column="0">
-            <StackPanel Margin="16" Spacing="24">
+            <StackPanel Margin="16" Spacing="16">
 
                 <!--  TabView Block  -->
                 <Border
@@ -27,7 +27,8 @@
                             x:Name="DemoTabView"
                             Height="250"
                             AddTabButtonClick="DemoTabView_AddTabButtonClick"
-                            TabCloseRequested="DemoTabView_TabCloseRequested">
+                            TabCloseRequested="DemoTabView_TabCloseRequested"
+                            SelectionChanged="DemoTabView_SelectionChanged">
                             <TabView.TabItems>
                                 <TabViewItem Header="Document 1">
                                     <TextBlock
@@ -100,7 +101,7 @@
 
         <!--  ===== Right: Property Editors =====  -->
         <ScrollViewer Grid.Column="1">
-            <StackPanel Margin="0,16,16,16" Spacing="20">
+            <StackPanel Margin="0,16,16,16" Spacing="12">
 
                 <!--  TabView Properties  -->
                 <Border
@@ -132,6 +133,27 @@
                             <ComboBoxItem Content="SizeToContent" />
                             <ComboBoxItem Content="Compact" />
                         </ComboBox>
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Tab Strip Header" />
+                        <TextBox
+                            x:Name="TabStripHeaderBox"
+                            PlaceholderText="Enter header text..."
+                            TextChanged="TabStripHeaderBox_TextChanged" />
+
+                        <TextBlock
+                            x:Name="TabStripFooterLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Tab Count: 3" />
+
+                        <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Text="Selected Tab Index" />
+                        <Slider
+                            x:Name="TabSelectedIndexSlider"
+                            Maximum="2"
+                            Minimum="0"
+                            StepFrequency="1"
+                            TickFrequency="1"
+                            ValueChanged="TabSelectedIndexSlider_ValueChanged"
+                            Value="0" />
                     </StackPanel>
                 </Border>
 
@@ -178,6 +200,19 @@
                             <ComboBoxItem Content="Horizontal" />
                             <ComboBoxItem Content="Vertical" />
                         </ComboBox>
+
+                        <TextBlock
+                            x:Name="PipsPageIndexLabel"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Selected Page Index: 1" />
+                        <Slider
+                            x:Name="PipsPageIndexSlider"
+                            Maximum="5"
+                            Minimum="1"
+                            StepFrequency="1"
+                            TickFrequency="1"
+                            ValueChanged="PipsPageIndexSlider_ValueChanged"
+                            Value="1" />
                     </StackPanel>
                 </Border>
 

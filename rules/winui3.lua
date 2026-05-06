@@ -51,9 +51,12 @@ rule("winui3.app")
             target:add("includedirs", src_dir)
         end
 
+        local namespace = target:values("winui3.namespace") or "xmake_demo"
+
         --  Compiler flags 
         target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8",
-                    "/DNOMINMAX", "/DWIN32_LEAN_AND_MEAN", "/DUNICODE", "/D_UNICODE")
+                    "/DNOMINMAX", "/DWIN32_LEAN_AND_MEAN", "/DUNICODE", "/D_UNICODE",
+                    "/DDISABLE_XAML_GENERATED_MAIN", "/DWINUI3_APP_NAMESPACE=" .. namespace)
 
         --  Link libraries 
         target:add("links", path.translate(NUGET_FOUNDATION .. "/lib/native/x64/Microsoft.WindowsAppRuntime.Bootstrap.lib"))
