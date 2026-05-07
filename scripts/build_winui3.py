@@ -16,16 +16,16 @@ from plat_info import (
     WINDOWS_SDK_ROOT,
     WINDOWS_SDK_VERSION,
     BuildError,
-    collect_appsdk_winmds,
-    collect_platform_winmds,
-    collect_win2d_winmds,
-    find_foundation_metadata_dir,
     path_env_with_vc,
     platform_xml_path,
     require_dir,
     require_file,
     vc_bin_path,
 )
+from winmd import platform as winmd_platform
+from winmd import appsdk as winmd_appsdk
+from winmd import webview2 as winmd_webview2
+from winmd import win2d as winmd_win2d
 
 from nuget_config import NuGetConfig, BUILD_TOOLS_BIN_VERSION
 
@@ -567,15 +567,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.xaml_compiler_path:
             xaml_compiler = absolute_path(args.xaml_compiler_path) / "XamlCompiler.exe"
 
-        webview2_winmd = (
-            config.package_path("Microsoft.Web.WebView2")
-            / "lib"
-            / "Microsoft.Web.WebView2.Core.winmd"
-        )
+        webview2_winmds = winmd_webview2.collect(config)
+        if len(webview2_winmds) != 1:
+            raise BuildError(
+                f"expected exactly 1 WebView2 WinMD, got {len(webview2_winmds)}"
+            )
+        webview2_winmd = webview2_winmds[0]
 
-        # Win2D 包路径解析与 WinMD 收集
-        win2d_pkg = config.package_path("Microsoft.Graphics.Win2D")
-        win2d_winmds = collect_win2d_winmds(win2d_pkg)
+        # Win2D WinMD 收集
+        win2d_winmds = winmd_win2d.collect(config)
 
         src_dir = require_dir(
             absolute_path(Path(args.src_dir)) if args.src_dir else project_dir / "src",
@@ -602,10 +602,10 @@ def main(argv: list[str] | None = None) -> int:
 
         winsdk_root = require_dir(WINDOWS_SDK_ROOT, "Windows SDK root")
         winsdk_version, _ = platform_xml_path(winsdk_root, WINDOWS_SDK_VERSION)
-        platform_winmds = collect_platform_winmds(winsdk_root, winsdk_version)
-        appsdk_winmds = collect_appsdk_winmds(foundation_pkg, winui_pkg, ixp_pkg)
+        platform_winmds = winmd_platform.collect(winsdk_root, winsdk_version)
+        appsdk_winmds = winmd_appsdk.collect(config)
         ref_winmds = [*platform_winmds, webview2_winmd, *appsdk_winmds, *win2d_winmds]
-        foundation_meta = find_foundation_metadata_dir(winsdk_root, winsdk_version)
+        foundation_meta = winmd_platform.find_metadata_dir(winsdk_root, winsdk_version)
         sdk_include_dir = require_dir(
             winsdk_root / "Include" / winsdk_version,
             "Windows SDK include directory",

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Windows 平台信息发现与路径解析工具。
 
-提供 Windows SDK 发现、WinMD 收集、MSVC 工具链定位及 NuGet 路径解析功能，
+提供 Windows SDK 发现、MSVC 工具链定位及 NuGet 路径解析功能，
 供 build_winui3.py 等构建脚本引用。
+
+WinMD 收集逻辑已提取至 scripts/winmd/ 包，各子模块提供统一接口。
 """
 
 from __future__ import annotations
 
 import os
 import shutil
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -107,41 +108,8 @@ except BuildError:
     WINDOWS_SDK_VERSION = "10.0.26100.0"
 DEFAULT_VC_BIN = _discover_vc_bin()
 
-# WinAppSDK 2.0.1+ splits WinMDs across Foundation, WinUI, and InteractiveExperiences sub-packages
-APP_SDK_WINMDS_FOUNDATION = [
-    "Microsoft.Security.Authentication.OAuth",
-    "Microsoft.Windows.ApplicationModel.Background",
-    "Microsoft.Windows.ApplicationModel.Background.UniversalBGTask",
-    "Microsoft.Windows.ApplicationModel.DynamicDependency",
-    "Microsoft.Windows.ApplicationModel.Resources",
-    "Microsoft.Windows.ApplicationModel.WindowsAppRuntime",
-    "Microsoft.Windows.AppLifecycle",
-    "Microsoft.Windows.AppNotifications",
-    "Microsoft.Windows.AppNotifications.Builder",
-    "Microsoft.Windows.BadgeNotifications",
-    "Microsoft.Windows.Foundation",
-    "Microsoft.Windows.Globalization",
-    "Microsoft.Windows.Management.Deployment",
-    "Microsoft.Windows.Media.Capture",
-    "Microsoft.Windows.PushNotifications",
-    "Microsoft.Windows.Security.AccessControl",
-    "Microsoft.Windows.Storage",
-    "Microsoft.Windows.Storage.Pickers",
-    "Microsoft.Windows.System",
-    "Microsoft.Windows.System.Power",
-]
-APP_SDK_WINMDS_WINUI = [
-    "Microsoft.UI.Text",
-    "Microsoft.UI.Xaml",
-]
-APP_SDK_WINMDS_IXP = [
-    "Microsoft.Foundation",
-    "Microsoft.Graphics",
-    "Microsoft.UI",
-]
 
-
-# ── SDK 版本发现、Platform.xml 解析与 WinMD 收集 ──────────────
+# ── Platform.xml 解析 ────────────────────────────────────────
 
 
 def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, Path]:
@@ -155,109 +123,6 @@ def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, P
     detected_version = discover_winsdk_version(winsdk_root)
     detected_xml = winsdk_root / "Platforms" / "UAP" / detected_version / "Platform.xml"
     return detected_version, require_file(detected_xml, "Windows SDK Platform.xml")
-
-
-def parse_platform_contracts(platform_xml: Path) -> list[tuple[str, str]]:
-    """从 Platform.xml 中解析 API 契约列表。"""
-    try:
-        root = ET.parse(platform_xml).getroot()
-    except ET.ParseError as exc:
-        raise BuildError(f"failed to parse {str(platform_xml)}: {exc}") from exc
-    except OSError as exc:
-        raise BuildError(f"failed to read {str(platform_xml)}: {exc}") from exc
-
-    contracts: list[tuple[str, str]] = []
-    for element in root.iter():
-        if element.tag.rsplit("}", 1)[-1] != "ApiContract":
-            continue
-
-        name = element.attrib.get("name")
-        version = element.attrib.get("version")
-        if not name or not version:
-            raise BuildError(
-                f"ApiContract in {str(platform_xml)} is missing name or version"
-            )
-        contracts.append((name, version))
-
-    if not contracts:
-        raise BuildError(f"no ApiContract entries found in {str(platform_xml)}")
-    return contracts
-
-
-def collect_platform_winmds(winsdk_root: Path, winsdk_version: str) -> list[Path]:
-    """收集平台 API 契约对应的 WinMD 引用文件。"""
-    _, platform_xml = platform_xml_path(winsdk_root, winsdk_version)
-    contracts = parse_platform_contracts(platform_xml)
-    winmds: list[Path] = []
-
-    for contract_name, contract_version in contracts:
-        winmd = (
-            winsdk_root
-            / "References"
-            / winsdk_version
-            / contract_name
-            / contract_version
-            / f"{contract_name}.winmd"
-        )
-        winmds.append(require_file(winmd, f"platform WinMD {contract_name}"))
-
-    return winmds
-
-
-def collect_appsdk_winmds(
-    foundation_pkg: Path,
-    winui_pkg: Path,
-    ixp_pkg: Path,
-) -> list[Path]:
-    """从 WinAppSDK 2.0.1+ 子包元数据目录中收集 WinMD 文件。"""
-    winmds: list[Path] = []
-
-    # Foundation metadata (root-level)
-    foundation_meta = require_dir(
-        foundation_pkg / "metadata", "Foundation metadata directory"
-    )
-    for name in APP_SDK_WINMDS_FOUNDATION:
-        candidate = foundation_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"Foundation WinMD {name}"))
-
-    # WinUI metadata (root-level)
-    winui_meta = require_dir(winui_pkg / "metadata", "WinUI metadata directory")
-    for name in APP_SDK_WINMDS_WINUI:
-        candidate = winui_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"WinUI WinMD {name}"))
-
-    # InteractiveExperiences metadata (versioned sub-directory)
-    ixp_meta_root = require_dir(
-        ixp_pkg / "metadata", "InteractiveExperiences metadata directory"
-    )
-    ixp_versions = sorted(d.name for d in ixp_meta_root.iterdir() if d.is_dir())
-    if not ixp_versions:
-        raise BuildError(f"no version sub-directories in: {str(ixp_meta_root)}")
-    ixp_meta = require_dir(
-        ixp_meta_root / ixp_versions[-1], "InteractiveExperiences version metadata"
-    )
-    for name in APP_SDK_WINMDS_IXP:
-        candidate = ixp_meta / f"{name}.winmd"
-        winmds.append(require_file(candidate, f"InteractiveExperiences WinMD {name}"))
-
-    return winmds
-
-
-def find_foundation_metadata_dir(winsdk_root: Path, winsdk_version: str) -> Path:
-    """定位 Windows.Foundation.FoundationContract 元数据目录。"""
-    foundation_root = require_dir(
-        winsdk_root
-        / "References"
-        / winsdk_version
-        / "Windows.Foundation.FoundationContract",
-        "Windows.Foundation.FoundationContract metadata directory",
-    )
-    versions = [path for path in foundation_root.iterdir() if path.is_dir()]
-    if not versions:
-        raise BuildError(
-            f"no FoundationContract versions found under: {str(foundation_root)}"
-        )
-    return max(versions, key=lambda path: parse_version(path.name))
 
 
 # ── NuGet / VC 工具链路径 ────────────────────────────────────
@@ -277,17 +142,6 @@ def vc_bin_path() -> Path:
     if tools_dir:
         return Path(tools_dir) / "bin" / "HostX64" / "x64"
     return DEFAULT_VC_BIN
-
-
-def collect_win2d_winmds(win2d_pkg: Path) -> list[Path]:
-    """从 Win2D NuGet 包中收集 WinMD 文件。
-
-    Win2D v1.2.0+ 在 lib/uap10.0/ 下提供单个 WinMD：
-    Microsoft.Graphics.Canvas.winmd
-    """
-    lib_dir = require_dir(win2d_pkg / "lib" / "uap10.0", "Win2D lib/uap10.0 directory")
-    winmd = lib_dir / "Microsoft.Graphics.Canvas.winmd"
-    return [require_file(winmd, "Win2D WinMD: Microsoft.Graphics.Canvas.winmd")]
 
 
 def path_env_with_vc(vc_bin: Path) -> dict[str, str]:

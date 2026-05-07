@@ -15,6 +15,7 @@ set_values("winui3.xaml_compiler_path", "C:\\Workspace\\Project\\xaml-compiler\\
 -- demo.common handles project-specific shared config like common/ directory)
 includes("rules/winui3.lua")
 includes("rules/demo.lua")
+includes("rules/win2d.lua")
 
 -- Include all demo targets (each demo/<name>/xmake.lua defines its own target)
 includes("demo/*/xmake.lua")

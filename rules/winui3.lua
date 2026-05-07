@@ -20,27 +20,8 @@ rule("winui3.app")
     on_load(function (target)
         --  Parse NuGet package paths from packages.config (cached)
         if not _cached_nuget_paths then
-            local xml = import("core.base.xml")
-            local config_path = path.join(os.projectdir(), "packages.config")
-            local nuget_root = (os.getenv("USERPROFILE") or ""):gsub("\\", "/") .. "/.nuget/packages"
-            local doc = xml.loadfile(config_path)
-            local root = xml.find(doc, "/packages")
-            local paths = {}
-            local package_ids = {}
-            if root then
-                for _, pkg in ipairs(root.children or {}) do
-                    if pkg.name == "package" then
-                        local pid = pkg.attrs and pkg.attrs.id
-                        local pver = pkg.attrs and pkg.attrs.version
-                        if pid and pver then
-                            paths[pid] = nuget_root .. "/" .. string.lower(pid) .. "/" .. pver
-                            table.insert(package_ids, pid)
-                        end
-                    end
-                end
-            end
-            _cached_nuget_paths = paths
-            _cached_nuget_package_ids = package_ids
+            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+            _cached_nuget_paths, _cached_nuget_package_ids = nuget_cfg.all_packages()
         end
         local paths = _cached_nuget_paths
         local package_ids = _cached_nuget_package_ids or {}
@@ -125,7 +106,8 @@ rule("winui3.app")
                 os.files(path.join(src_dir, "**.xaml")),
                 os.files(path.join(src_dir, "**.xaml.h")),
                 os.files(path.join(src_dir, "**.idl")),
-                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "rules", "winui3.lua"), path.join(root_dir, "packages.config") }
+                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
+                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "scripts", "plat_info.py"), path.join(root_dir, "scripts", "nuget_config.py"), path.join(root_dir, "scripts", "nuget_config.lua"), path.join(root_dir, "rules", "winui3.lua"), path.join(root_dir, "packages.config") }
             ),
         })
     end)
@@ -133,25 +115,16 @@ rule("winui3.app")
     --  after_build: copy runtime files to output
     --  Depends on _cached_nuget_paths populated by on_load (runs first in target lifecycle).
     after_build(function (target)
-        local foundation = _cached_nuget_paths and _cached_nuget_paths["Microsoft.WindowsAppSDK.Foundation"]
+        local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+        local foundation = nuget_cfg.package_path("Microsoft.WindowsAppSDK.Foundation")
         if not foundation then
-            raise("NuGet path cache not populated: on_load must run before after_build")
+            raise("Microsoft.WindowsAppSDK.Foundation NuGet package not found in packages.config")
         end
 
         local outdir = target:targetdir()
         local dll_src = (foundation .. "/runtimes/win-x64/native/Microsoft.WindowsAppRuntime.Bootstrap.dll"):gsub("/", "\\")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)
-
-        -- 复制 Win2D 原生 DLL 到输出目录（若包已安装）
-        local win2d = _cached_nuget_paths["Microsoft.Graphics.Win2D"]
-        if win2d then
-            local canvas_src = (win2d .. "/runtimes/win-x64/native/Microsoft.Graphics.Canvas.dll"):gsub("/", "\\")
-            local canvas_dst = path.join(outdir, "Microsoft.Graphics.Canvas.dll")
-            if os.isfile(canvas_src) then
-                os.cp(canvas_src, canvas_dst)
-            end
-        end
 
         os.cp(path.join(outdir, "generated", "resources.pri"), path.join(outdir, "resources.pri"))
     end)
