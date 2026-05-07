@@ -27,6 +27,7 @@
 namespace wf = winrt::Windows::Foundation;
 namespace wfc = winrt::Windows::Foundation::Collections;
 namespace mux = winrt::Microsoft::UI::Xaml;
+namespace muxm = winrt::Microsoft::UI::Xaml::Media;
 namespace muxc = winrt::Microsoft::UI::Xaml::Controls;
 namespace muxp = winrt::Microsoft::UI::Xaml::Controls::Primitives;
 namespace mui = winrt::Microsoft::UI;

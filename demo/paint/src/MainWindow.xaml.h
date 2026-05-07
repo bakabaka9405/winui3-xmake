@@ -46,7 +46,25 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& e);
 
-	// ── 控件事件 ────────────────────────────────────────────
+	// ── 工具切换事件 ────────────────────────────────────────
+	void ToolButton_Checked(
+		winrt::Windows::Foundation::IInspectable const& sender,
+		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
+
+	void ToolButton_Unchecked(
+		winrt::Windows::Foundation::IInspectable const& sender,
+		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
+
+	// ── 取色器事件 ──────────────────────────────────────────
+	void BrushColorPicker_ColorChanged(
+		winrt::Microsoft::UI::Xaml::Controls::ColorPicker const& sender,
+		winrt::Microsoft::UI::Xaml::Controls::ColorChangedEventArgs const& args);
+
+	void PresetColor_Click(
+		winrt::Windows::Foundation::IInspectable const& sender,
+		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
+
+	// ── 操作按钮事件 ────────────────────────────────────────
 	void UndoButton_Click(
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
@@ -55,13 +73,12 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
 
-	void BrushColorPicker_ColorChanged(
-		winrt::Microsoft::UI::Xaml::Controls::ColorPicker const& sender,
-		winrt::Microsoft::UI::Xaml::Controls::ColorChangedEventArgs const& args);
-
 private:
 	// ── 辅助函数 ────────────────────────────────────────────
 	DrawingTool GetActiveTool();
+	void UpdateToolButtonStates(DrawingTool tool);
+	void UpdateColorPreview();
+	void BuildPresetColors();
 	void DrawStroke(mgc::CanvasDrawingSession const& ds, PaintStroke const& stroke);
 	void UpdateButtonStates();
 	winrt::Windows::Foundation::Point GetCanvasPoint(
@@ -71,6 +88,11 @@ private:
 	std::vector<PaintStroke> m_strokes;
 	PaintStroke m_currentStroke{};
 	bool m_isDrawing = false;
+	DrawingTool m_activeTool = DrawingTool::Pen;
+	bool m_isUpdatingTools = false;
+
+	// 初始化守卫：防止 XAML 加载期间事件访问尚未就绪的控件
+	bool m_isInitialized = false;
 };
 
 } // namespace winrt::paint::implementation
