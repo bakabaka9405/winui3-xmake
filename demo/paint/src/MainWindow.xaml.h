@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include <winrt/Microsoft.Graphics.Canvas.h>
 #include <winrt/Microsoft.Graphics.Canvas.UI.Xaml.h>
 
@@ -24,6 +26,29 @@ struct PaintStroke {
 	DrawingTool tool;
 	winrt::Windows::UI::Color color;
 	float thickness;
+	bool isComplete = false;                              // 笔触是否已提交——决定是否缓存几何体
+	mutable mgc::Geometry::CanvasGeometry cachedGeometry{ nullptr };
+};
+
+// One Euro Filter — 自适应低通滤波，消除手抖噪声
+// 参考：Casiez, Roussel, Vogel (CHI 2012)
+// 原理：根据笔触速度动态调整截止频率——慢速强滤波，快速弱滤波
+struct OneEuroFilter {
+	float minCutoff = 1.0f;                             // 最低截止频率 (Hz)
+	float beta = 0.007f;                                 // 速度系数
+	float dcutoff = 1.0f;                                // 导数滤波截止频率 (Hz)
+
+	bool initialized = false;
+	winrt::Windows::Foundation::Point rawPrev{};
+	winrt::Windows::Foundation::Point filteredPrev{};
+	winrt::Windows::Foundation::Point dhatPrev{};
+	std::chrono::steady_clock::time_point tPrev{};
+
+	void Reset() { initialized = false; }
+
+	winrt::Windows::Foundation::Point Step(
+		winrt::Windows::Foundation::Point const& raw,
+		std::chrono::steady_clock::time_point const& now);
 };
 
 struct MainWindow : MainWindowT<MainWindow> {
@@ -90,6 +115,7 @@ private:
 	bool m_isDrawing = false;
 	DrawingTool m_activeTool = DrawingTool::Pen;
 	bool m_isUpdatingTools = false;
+	OneEuroFilter m_pointerFilter;
 
 	// 初始化守卫：防止 XAML 加载期间事件访问尚未就绪的控件
 	bool m_isInitialized = false;

@@ -1,9 +1,10 @@
-#include "MainWindow.xaml.h"
 #include "pch.h"
+#include "MainWindow.xaml.h"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <winrt/Microsoft.Graphics.Canvas.Geometry.h>
 #include <winrt/Microsoft.UI.Input.h>
 
 #if __has_include("MainWindow.g.cpp")
@@ -87,7 +88,10 @@ void MainWindow::PaintCanvas_PointerPressed(
 
 	// 初始化当前笔触
 	m_currentStroke.points.clear();
-	m_currentStroke.points.push_back(GetCanvasPoint(e));
+	m_pointerFilter.Reset();
+	// 首个点亦经过滤波（首次调用返回原始值，随后逐渐平滑）
+	m_currentStroke.points.push_back(m_pointerFilter.Step(
+		GetCanvasPoint(e), std::chrono::steady_clock::now()));
 	m_currentStroke.tool = GetActiveTool();
 
 	// 防御性读取 —— Flyout 内的 ColorPicker 可能在名称作用域中为空
@@ -102,7 +106,22 @@ void MainWindow::PaintCanvas_PointerMoved(
 	PointerRoutedEventArgs const& e) {
 	if (!m_isDrawing) return;
 
-	m_currentStroke.points.push_back(GetCanvasPoint(e));
+	auto const raw = GetCanvasPoint(e);
+
+	// One Euro 低通滤波：消除手抖微颤
+	auto const pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
+
+	// 距离过滤：距上一有效点 < 2px 则跳过，减少冗余采样
+	if (!m_currentStroke.points.empty()) {
+		auto const& last = m_currentStroke.points.back();
+		float const dx = pt.X - last.X;
+		float const dy = pt.Y - last.Y;
+		if (dx * dx + dy * dy < 4.0f) {  // 2² = 4
+			return;
+		}
+	}
+
+	m_currentStroke.points.push_back(pt);
 	PaintCanvas().Invalidate();
 }
 
@@ -114,10 +133,22 @@ void MainWindow::PaintCanvas_PointerReleased(
 	auto canvas = sender.as<mgcux::CanvasControl>();
 	canvas.ReleasePointerCapture(e.Pointer());
 
-	// 记录终点
-	m_currentStroke.points.push_back(GetCanvasPoint(e));
+	// 记录终点（经 One Euro 滤波与距离过滤，避免末端折角）
+	auto const raw = GetCanvasPoint(e);
+	auto const pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
+	if (!m_currentStroke.points.empty()) {
+		auto const& last = m_currentStroke.points.back();
+		float const dx = pt.X - last.X;
+		float const dy = pt.Y - last.Y;
+		if (dx * dx + dy * dy >= 4.0f) {  // 距上一点 ≥2px 才记录
+			m_currentStroke.points.push_back(pt);
+		}
+	} else {
+		m_currentStroke.points.push_back(pt);
+	}
 
-	// 将当前笔触提交到历史列表
+	// 将当前笔触提交到历史列表（标记完成以允许几何缓存）
+	m_currentStroke.isComplete = true;
 	m_strokes.push_back(std::move(m_currentStroke));
 	m_currentStroke = PaintStroke{};
 	m_isDrawing = false;
@@ -337,6 +368,81 @@ DrawingTool MainWindow::GetActiveTool() {
 	return m_activeTool;
 }
 
+// ═══════════════════════════════════════════════════════════
+// Catmull-Rom 样条 → 三次 Bezier 控制点转换
+// 将四个 Catmull-Rom 控制点 (P0,P1,P2,P3) 转换为以 P1 为起点、
+// P2 为终点的三次 Bezier 段，使用 Cardinal 张力 = 0.5。
+// ═══════════════════════════════════════════════════════════
+
+struct BezierSegment {
+	winrt::Windows::Foundation::Point control1;
+	winrt::Windows::Foundation::Point control2;
+	winrt::Windows::Foundation::Point end;
+};
+
+static BezierSegment CatmullRomToBezier(
+	winrt::Windows::Foundation::Point const& p0,
+	winrt::Windows::Foundation::Point const& p1,
+	winrt::Windows::Foundation::Point const& p2,
+	winrt::Windows::Foundation::Point const& p3) {
+	// 控制点偏移量：k = (1 - tension) / 6 = 0.5 / 6 = 1 / 12
+	constexpr float k = 1.0f / 12.0f;
+	return BezierSegment{
+		.control1 = { p1.X + k * (p2.X - p0.X), p1.Y + k * (p2.Y - p0.Y) },
+		.control2 = { p2.X - k * (p3.X - p1.X), p2.Y - k * (p3.Y - p1.Y) },
+		.end = p2
+	};
+}
+
+// ═══════════════════════════════════════════════════════════
+// One Euro Filter 步进实现
+// ═══════════════════════════════════════════════════════════
+
+static float ComputeAlpha(float dt, float cutoff) {
+	float const tau = 1.0f / (2.0f * 3.14159265358979323846f * cutoff);
+	return dt / (dt + tau);
+}
+
+winrt::Windows::Foundation::Point OneEuroFilter::Step(
+	winrt::Windows::Foundation::Point const& raw,
+	std::chrono::steady_clock::time_point const& now) {
+	if (!initialized) {
+		rawPrev = raw;
+		filteredPrev = raw;
+		dhatPrev = { 0, 0 };
+		tPrev = now;
+		initialized = true;
+		return raw;
+	}
+
+	auto const dt = std::chrono::duration<float>(now - tPrev).count();
+	if (dt <= 0.0f) return filteredPrev;
+
+	// 阶段 1：对导数（速度）做低通滤波
+	float const dx = (raw.X - rawPrev.X) / dt;
+	float const dy = (raw.Y - rawPrev.Y) / dt;
+	float const ad = ComputeAlpha(dt, dcutoff);
+	float const dxh = dhatPrev.X + ad * (dx - dhatPrev.X);
+	float const dyh = dhatPrev.Y + ad * (dy - dhatPrev.Y);
+
+	// 阶段 2：根据速度自适应计算截止频率
+	float const speed = std::sqrt(dxh * dxh + dyh * dyh);
+	float const cutoff = minCutoff + beta * speed;
+
+	// 阶段 3：对位置信号做低通滤波
+	float const a = ComputeAlpha(dt, cutoff);
+	float const xh = filteredPrev.X + a * (raw.X - filteredPrev.X);
+	float const yh = filteredPrev.Y + a * (raw.Y - filteredPrev.Y);
+
+	// 阶段 4：更新滤波器状态
+	rawPrev = raw;
+	filteredPrev = { xh, yh };
+	dhatPrev = { dxh, dyh };
+	tPrev = now;
+
+	return filteredPrev;
+}
+
 void MainWindow::DrawStroke(
 	mgc::CanvasDrawingSession const& ds,
 	PaintStroke const& stroke) {
@@ -347,18 +453,86 @@ void MainWindow::DrawStroke(
 
 	switch (stroke.tool) {
 
-	// ── 画笔模式：逐段连线（自由绘制） ──────────────────────
+	// ── 画笔模式：Catmull-Rom 样条平滑渲染 ──────────────────
 	case DrawingTool::Pen: {
-		for (size_t i = 0; i + 1 < stroke.points.size(); ++i) {
-			auto const& p0 = stroke.points[i];
-			auto const& p1 = stroke.points[i + 1];
-			ds.DrawLine(p0.X, p0.Y, p1.X, p1.Y, color, thickness);
-		}
-		// 单点情况下绘制一个点
-		if (stroke.points.size() == 1) {
+		auto const n = stroke.points.size();
+		if (n == 0) break;
+
+		// 单点回退：绘制点状标记
+		if (n == 1) {
 			auto const& p = stroke.points[0];
 			ds.DrawLine(p.X, p.Y, p.X + 0.5f, p.Y + 0.5f, color, thickness);
+			break;
 		}
+
+		// 双点回退：简单直线
+		if (n == 2) {
+			auto const& p0 = stroke.points[0];
+			auto const& p1 = stroke.points[1];
+			ds.DrawLine(p0.X, p0.Y, p1.X, p1.Y, color, thickness);
+			break;
+		}
+
+		// ≥ 3 点：Catmull-Rom 样条 → CanvasPathBuilder → DrawGeometry
+		// 若已缓存，复用几何体（避免每帧重建）
+		if (stroke.cachedGeometry) {
+			ds.DrawGeometry(stroke.cachedGeometry, color, thickness);
+			break;
+		}
+
+		auto pathBuilder = mgc::Geometry::CanvasPathBuilder(ds);
+
+		// 虚拟首端控制点：镜像 P1 关于 P0 的对称点
+		auto const& P0 = stroke.points[0];
+		auto const& P1 = stroke.points[1];
+		auto const vBefore = winrt::Windows::Foundation::Point{
+			2.0f * P0.X - P1.X, 2.0f * P0.Y - P1.Y
+		};
+
+		pathBuilder.BeginFigure({ P0.X, P0.Y });
+
+		// 首段：vBefore → P0 → P1 → P2
+		{
+			auto seg = CatmullRomToBezier(vBefore, P0, P1, stroke.points[2]);
+			pathBuilder.AddCubicBezier(
+				{ seg.control1.X, seg.control1.Y },
+				{ seg.control2.X, seg.control2.Y },
+				{ seg.end.X, seg.end.Y });
+		}
+
+		// 中间段：Pi-1 → Pi → Pi+1 → Pi+2  (i = 1 .. n-3)
+		for (size_t i = 1; i + 2 < n; ++i) {
+			auto seg = CatmullRomToBezier(
+				stroke.points[i - 1], stroke.points[i],
+				stroke.points[i + 1], stroke.points[i + 2]);
+			pathBuilder.AddCubicBezier(
+				{ seg.control1.X, seg.control1.Y },
+				{ seg.control2.X, seg.control2.Y },
+				{ seg.end.X, seg.end.Y });
+		}
+
+		// 末段：P{n-3} → P{n-2} → P{n-1} → vAfter
+		{
+			auto const& Pn2 = stroke.points[n - 2];
+			auto const& Pn1 = stroke.points[n - 1];
+			auto const vAfter = winrt::Windows::Foundation::Point{
+				2.0f * Pn1.X - Pn2.X, 2.0f * Pn1.Y - Pn2.Y
+			};
+			auto seg = CatmullRomToBezier(
+				stroke.points[n - 3], Pn2, Pn1, vAfter);
+			pathBuilder.AddCubicBezier(
+				{ seg.control1.X, seg.control1.Y },
+				{ seg.control2.X, seg.control2.Y },
+				{ seg.end.X, seg.end.Y });
+		}
+
+		pathBuilder.EndFigure(mgc::Geometry::CanvasFigureLoop::Open);
+		auto geometry = mgc::Geometry::CanvasGeometry::CreatePath(pathBuilder);
+		// 仅对已完成的笔触缓存几何体——实时预览笔触每帧变化
+		if (stroke.isComplete) {
+			stroke.cachedGeometry = geometry;
+		}
+		ds.DrawGeometry(geometry, color, thickness);
 		break;
 	}
 
