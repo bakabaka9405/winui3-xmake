@@ -143,5 +143,15 @@ rule("winui3.app")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)
 
+        -- 复制 Win2D 原生 DLL 到输出目录（若包已安装）
+        local win2d = _cached_nuget_paths["Microsoft.Graphics.Win2D"]
+        if win2d then
+            local canvas_src = (win2d .. "/runtimes/win-x64/native/Microsoft.Graphics.Canvas.dll"):gsub("/", "\\")
+            local canvas_dst = path.join(outdir, "Microsoft.Graphics.Canvas.dll")
+            if os.isfile(canvas_src) then
+                os.cp(canvas_src, canvas_dst)
+            end
+        end
+
         os.cp(path.join(outdir, "generated", "resources.pri"), path.join(outdir, "resources.pri"))
     end)

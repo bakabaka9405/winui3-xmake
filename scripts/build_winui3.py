@@ -18,6 +18,7 @@ from plat_info import (
     BuildError,
     collect_appsdk_winmds,
     collect_platform_winmds,
+    collect_win2d_winmds,
     find_foundation_metadata_dir,
     path_env_with_vc,
     platform_xml_path,
@@ -319,6 +320,7 @@ def projection_fingerprint(
     platform_winmds: list[Path],
     webview2_winmd: Path,
     appsdk_winmds: list[Path],
+    win2d_winmds: list[Path],
 ) -> dict[str, Any]:
     inputs = [
         build_script,
@@ -326,6 +328,7 @@ def projection_fingerprint(
         *platform_winmds,
         webview2_winmd,
         *appsdk_winmds,
+        *win2d_winmds,
     ]
     files: list[dict[str, Any]] = []
 
@@ -401,6 +404,7 @@ def generate_shared_projection_headers(
     platform_winmds: list[Path],
     webview2_winmd: Path,
     appsdk_winmds: list[Path],
+    win2d_winmds: list[Path],
 ) -> None:
     # 阶段一：平台契约投影。
     phase1a = [str(cppwinrt_exe)]
@@ -417,8 +421,11 @@ def generate_shared_projection_headers(
     run_command(phase1b)
 
     # 阶段三：Windows App SDK / WinUI 投影，引用平台契约与 WebView2。
+    # 同时将 Win2D WinMD 作为输入一并投影，生成 Canvas 类型头文件。
     phase1c = [str(cppwinrt_exe)]
     for winmd in appsdk_winmds:
+        phase1c.extend(["-in", str(winmd)])
+    for winmd in win2d_winmds:
         phase1c.extend(["-in", str(winmd)])
     for winmd in platform_winmds:
         phase1c.extend(["-ref", str(winmd)])
@@ -566,6 +573,10 @@ def main(argv: list[str] | None = None) -> int:
             / "Microsoft.Web.WebView2.Core.winmd"
         )
 
+        # Win2D 包路径解析与 WinMD 收集
+        win2d_pkg = config.package_path("Microsoft.Graphics.Win2D")
+        win2d_winmds = collect_win2d_winmds(win2d_pkg)
+
         src_dir = require_dir(
             absolute_path(Path(args.src_dir)) if args.src_dir else project_dir / "src",
             "project src directory",
@@ -593,7 +604,7 @@ def main(argv: list[str] | None = None) -> int:
         winsdk_version, _ = platform_xml_path(winsdk_root, WINDOWS_SDK_VERSION)
         platform_winmds = collect_platform_winmds(winsdk_root, winsdk_version)
         appsdk_winmds = collect_appsdk_winmds(foundation_pkg, winui_pkg, ixp_pkg)
-        ref_winmds = [*platform_winmds, webview2_winmd, *appsdk_winmds]
+        ref_winmds = [*platform_winmds, webview2_winmd, *appsdk_winmds, *win2d_winmds]
         foundation_meta = find_foundation_metadata_dir(winsdk_root, winsdk_version)
         sdk_include_dir = require_dir(
             winsdk_root / "Include" / winsdk_version,
@@ -629,6 +640,7 @@ def main(argv: list[str] | None = None) -> int:
             platform_winmds=platform_winmds,
             webview2_winmd=webview2_winmd,
             appsdk_winmds=appsdk_winmds,
+            win2d_winmds=win2d_winmds,
         )
         if is_shared_projection_current(
             shared_projection_dir, shared_projection_fingerprint
@@ -641,6 +653,7 @@ def main(argv: list[str] | None = None) -> int:
                 platform_winmds=platform_winmds,
                 webview2_winmd=webview2_winmd,
                 appsdk_winmds=appsdk_winmds,
+                win2d_winmds=win2d_winmds,
             )
             write_shared_projection_stamp(
                 shared_projection_dir, shared_projection_fingerprint

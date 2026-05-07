@@ -18,6 +18,7 @@ from pathlib import Path
 
 class BuildError(RuntimeError):
     """面向用户的构建失败异常。"""
+
     pass
 
 
@@ -61,7 +62,6 @@ def _discover_winsdk_root() -> Path:
     except OSError:
         pass
     return Path(r"C:\Program Files (x86)\Windows Kits\10")
-
 
 
 def discover_winsdk_version(winsdk_root: Path) -> str:
@@ -142,7 +142,6 @@ APP_SDK_WINMDS_IXP = [
 
 
 # ── SDK 版本发现、Platform.xml 解析与 WinMD 收集 ──────────────
-
 
 
 def platform_xml_path(winsdk_root: Path, requested_version: str) -> tuple[str, Path]:
@@ -278,6 +277,17 @@ def vc_bin_path() -> Path:
     if tools_dir:
         return Path(tools_dir) / "bin" / "HostX64" / "x64"
     return DEFAULT_VC_BIN
+
+
+def collect_win2d_winmds(win2d_pkg: Path) -> list[Path]:
+    """从 Win2D NuGet 包中收集 WinMD 文件。
+
+    Win2D v1.2.0+ 在 lib/uap10.0/ 下提供单个 WinMD：
+    Microsoft.Graphics.Canvas.winmd
+    """
+    lib_dir = require_dir(win2d_pkg / "lib" / "uap10.0", "Win2D lib/uap10.0 directory")
+    winmd = lib_dir / "Microsoft.Graphics.Canvas.winmd"
+    return [require_file(winmd, "Win2D WinMD: Microsoft.Graphics.Canvas.winmd")]
 
 
 def path_env_with_vc(vc_bin: Path) -> dict[str, str]:
