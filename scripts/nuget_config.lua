@@ -1,12 +1,14 @@
 -- shared packages.config parser for WinUI3 / Win2D xmake rules
 --
--- Provides two interfaces that lazily parse packages.config on first call
+-- Provides interfaces that lazily parse packages.config on first call
 -- and cache the result at module level:
 --
---   all_packages()   → paths: table (package id → local path),
---                       package_ids: table (ordered list, preserved
---                       declaration order from packages.config)
---   package_path(id) → local path string, or nil if not found
+--   all_packages()          → paths: table (package id → local path),
+--                              package_ids: table (ordered list, preserved
+--                              declaration order from packages.config)
+--   package_path(id)        → local path string, or nil if not found
+--   check_env()             → ok: boolean, missing: table (list of missing package IDs)
+--   reset_cache()           → clear module cache (call after nuget restore)
 --
 -- Important: import("core.base.xml") is called inside the parser function.
 -- Do NOT move it to module top-level — xmake's import() requires a
@@ -68,7 +70,32 @@ function package_path(id)
     return c.paths[id]
 end
 
+-- 清空模块级缓存。在 nuget restore 完成后调用，
+-- 以强制后续 all_packages() / package_path() 重新解析 packages.config。
+function reset_cache()
+    _cached = nil
+end
+
+-- 检查 NuGet 包环境是否完整。
+-- 遍历 packages.config 中声明的所有包，验证其本地目录是否存在。
+--
+-- 返回值:
+--   ok      — boolean, true 表示所有包目录均存在
+--   missing — table, 缺失的包 ID 列表
+function check_env()
+    local c = _parse()
+    local missing = {}
+    for _, pid in ipairs(c.package_ids) do
+        if not os.isdir(c.paths[pid]) then
+            table.insert(missing, pid)
+        end
+    end
+    return #missing == 0, missing
+end
+
 return {
     all_packages = all_packages,
     package_path = package_path,
+    check_env     = check_env,
+    reset_cache   = reset_cache,
 }

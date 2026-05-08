@@ -21,6 +21,29 @@ rule("winui3.app")
         --  Parse NuGet package paths from packages.config (cached)
         if not _cached_nuget_paths then
             local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+
+            --  ── 环境完整性检查 ─────────────────────────────────
+            --  验证 packages.config 中所有包的本地目录是否真实存在。
+            --  若缺失则自动执行 nuget restore 并重新验证。
+            local env_ok, missing = nuget_cfg.check_env()
+            if not env_ok then
+                cprint("${color.warning}NuGet packages missing from global cache: %s",
+                       table.concat(missing, ", "))
+                cprint("${color.warning}Running 'nuget restore' to install missing packages...")
+                os.run("nuget restore -PackagesDirectory \"%s\"",
+                        os.getenv("USERPROFILE") .. "\\.nuget\\packages")
+                --  清空 nuget_config 模块缓存，以强制重新解析
+                nuget_cfg.reset_cache()
+
+                --  恢复后再次验证
+                local env_ok2, missing2 = nuget_cfg.check_env()
+                if not env_ok2 then
+                    raise("NuGet packages still missing after 'nuget restore':\n  "
+                          .. table.concat(missing2, "\n  "))
+                end
+                cprint("${color.success}All NuGet packages verified.")
+            end
+
             _cached_nuget_paths, _cached_nuget_package_ids = nuget_cfg.all_packages()
         end
         local paths = _cached_nuget_paths
