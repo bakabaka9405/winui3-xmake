@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebView2 Hello World</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* 保持使用 Windows 默认字体 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f3f3f3;
+            /* 朴素的浅灰背景 */
+            color: #333333;
+            /* 深灰色文本，易于阅读 */
+        }
+
+        .container {
+            text-align: center;
+            background: #ffffff;
+            /* 纯白卡片 */
+            border: 1px solid #e5e5e5;
+            /* 细边框 */
+            border-radius: 8px;
+            padding: 2.5rem 3.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            /* 非常柔和的阴影 */
+            width: 100%;
+            max-width: 480px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #111111;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #666666;
+            margin-bottom: 1.5rem;
+        }
+
+        #status {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            background: #eef8ff;
+            color: #0066cc;
+            border: 1px solid #cce5ff;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        #status.error {
+            background: #fff1f0;
+            color: #cf1322;
+            border-color: #ffa39e;
+        }
+
+        #sendBtn {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.95rem;
+            color: #ffffff;
+            background: #0067c0;
+            /* 类似 WinUI 默认的强调色蓝色 */
+            border: 1px solid #0067c0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+
+        #sendBtn:hover {
+            background: #005a9e;
+            border-color: #005a9e;
+        }
+
+        #sendBtn:active {
+            background: #004c87;
+        }
+
+        #sendBtn:disabled {
+            background: #cccccc;
+            border-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        #log {
+            margin-top: 2rem;
+            text-align: left;
+            height: 180px;
+            /* 固定高度，避免内容增多撑开页面 */
+            overflow-y: auto;
+            font-size: 0.85rem;
+            font-family: 'Consolas', 'Courier New', monospace;
+            /* 日志使用等宽字体 */
+            background: #fafafa;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+
+        .log-entry {
+            padding: 0.2rem 0;
+            color: #555555;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Hello, World!</h1>
+        <p class="subtitle">WinUI3 + WebView2 Integration Demo</p>
+
+        <div id="status">Connecting to C++...</div>
+        <br>
+        <button id="sendBtn">Send Message to C++</button>
+
+        <div id="log"></div>
+    </div>
+
+    <script>
+        (function () {
+            // Check if WebView2 host API is available
+            if (typeof window.chrome === 'undefined' || typeof window.chrome.webview === 'undefined') {
+                document.getElementById('status').className = 'error';
+                document.getElementById('status').innerText = 'WebView2 API not available';
+                document.getElementById('sendBtn').disabled = true;
+
+                // Add a mock log for testing in normal browsers
+                addLog('Warning: Running outside of WebView2 environment.');
+                return;
+            } else {
+                document.getElementById('status').innerText = 'Connected to Host';
+            }
+
+            // Add timestamped log entry
+            function addLog(message) {
+                var log = document.getElementById('log');
+                var entry = document.createElement('div');
+                entry.className = 'log-entry';
+
+                // Format time as HH:mm:ss
+                var now = new Date();
+                var time = now.toTimeString().split(' ')[0];
+
+                entry.textContent = '[' + time + '] ' + message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+
+            // Receive message from C++
+            window.chrome.webview.addEventListener('message', function (event) {
+                addLog('Received: ' + event.data);
+            });
+
+            // Send message to C++ on button click
+            document.getElementById('sendBtn').addEventListener('click', function () {
+                var message = 'Hello from JavaScript!';
+                window.chrome.webview.postMessage(message);
+                addLog('Sent: ' + message);
+            });
+
+            addLog('Page loaded successfully');
+        })();
+    </script>
+</body>
+
+</html>

@@ -130,7 +130,14 @@ rule("winui3.app")
                 os.files(path.join(src_dir, "**.xaml.h")),
                 os.files(path.join(src_dir, "**.idl")),
                 os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
-                { path.join(root_dir, "scripts", "build_winui3.py"), path.join(root_dir, "scripts", "plat_info.py"), path.join(root_dir, "scripts", "nuget_config.py"), path.join(root_dir, "scripts", "nuget_config.lua"), path.join(root_dir, "rules", "winui3.lua"), path.join(root_dir, "packages.config") }
+                { 
+                    path.join(root_dir, "scripts", "build_winui3.py"), 
+                    path.join(root_dir, "scripts", "plat_info.py"), 
+                    path.join(root_dir, "scripts", "nuget_config.py"), 
+                    path.join(root_dir, "scripts", "nuget_config.lua"), 
+                    path.join(root_dir, "rules", "winui3.lua"), 
+                    path.join(root_dir, "packages.config") 
+                }
             ),
         })
     end)
