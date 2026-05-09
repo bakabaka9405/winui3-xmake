@@ -378,25 +378,6 @@ def same_path(left: Path, right: Path) -> bool:
     return os.path.normcase(str(left)) == os.path.normcase(str(right))
 
 
-def generate_xaml_metadata_provider(generated_dir: Path, namespace: str) -> None:
-    write_text(
-        generated_dir / "XamlMetaDataProvider.idl",
-        f"namespace {namespace}\n"
-        "{\n"
-        "    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider\n"
-        "    {\n"
-        "        XamlMetaDataProvider();\n"
-        "    }\n"
-        "}\n",
-    )
-    write_text(
-        generated_dir / "XamlMetaDataProvider.cpp",
-        '#include "pch.h"\n'
-        '#include "XamlMetaDataProvider.h"\n'
-        '#include "XamlMetaDataProvider.g.cpp"\n',
-    )
-
-
 def generate_shared_projection_headers(
     *,
     cppwinrt_exe: Path,
@@ -666,13 +647,9 @@ def main(argv: list[str] | None = None) -> int:
 
         midl_env = path_env_with_vc(vc_bin_path())
 
-        if not idl_files:
-            # 零用户 IDL：自动生成最小 XamlMetaDataProvider 以供构建
-            print(
-                "  (no user IDL files found, auto-generating XamlMetaDataProvider.idl)"
-            )
-            generate_xaml_metadata_provider(generated_dir, args.namespace)
-            idl_files = [generated_dir / "XamlMetaDataProvider.idl"]
+        xmp_idl = generated_dir / "XamlMetaDataProvider.idl"
+        if xmp_idl.exists():
+            idl_files.append(xmp_idl)
 
         for idl_path in idl_files:
             # 保留相对于 src_dir 的目录结构生成 winmd，避免子目录同名 IDL 冲突
@@ -725,9 +702,6 @@ def main(argv: list[str] | None = None) -> int:
         for winmd in ref_winmds:
             cppwinrt_project.extend(["-ref", str(winmd)])
         run_command(cppwinrt_project)
-
-        print_phase("[5/8] Generate XamlMetaDataProvider source")
-        generate_xaml_metadata_provider(generated_dir, args.namespace)
 
         print_phase("[6/8] Run XAML compiler pass 1")
 

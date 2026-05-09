@@ -65,6 +65,29 @@ rule("winui3.app")
         --  Generated output include directories 
         target:add("includedirs", path.join(target:targetdir(), "generated"))
         target:add("includedirs", path.join(target:targetdir(), "generated", "sources"))
+
+        -- 全权在 on_load 中生成 XamlMetaDataProvider.idl 和 .cpp，
+        -- Python 管线不再负责生成，仅负责将已存在的 .idl 纳入 MIDL 编译。
+        do
+            local namespace = target:values("winui3.namespace") or "xmake_demo"
+            local gen_dir = path.join(target:targetdir(), "generated")
+            local xmp_idl = path.join(gen_dir, "XamlMetaDataProvider.idl")
+            local xmp_file = path.join(gen_dir, "XamlMetaDataProvider.cpp")
+            if not os.isdir(gen_dir) then
+                os.mkdir(gen_dir)
+            end
+            -- 生成 .idl（使用正确的命名空间）
+            local idl_content = string.format(
+                "namespace %s\n{\n    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider\n    {\n        XamlMetaDataProvider();\n    }\n}\n",
+                namespace
+            )
+            io.writefile(xmp_idl, idl_content)
+            -- 生成 .cpp 存根（包含 cppwinrt 生成的实现文件）
+            io.writefile(xmp_file, '#include "pch.h"\n#include "XamlMetaDataProvider.h"\n#include "XamlMetaDataProvider.g.cpp"\n')
+            -- 注册 .cpp 为编译源文件
+            target:add("files", xmp_file)
+        end
+
         target:add("includedirs", path.join(path.directory(target:targetdir()), "shared", "generated"))
 
         --  NuGet include directories: add every package include/ folder that exists.
