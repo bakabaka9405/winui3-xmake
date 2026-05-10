@@ -2,7 +2,7 @@
 """Windows 平台信息发现与路径解析工具。
 
 提供 Windows SDK 发现、MSVC 工具链定位及 NuGet 路径解析功能，
-供 build_winui3.py 等构建脚本引用。
+供 WinUI3 构建脚本引用
 
 WinMD 收集逻辑已提取至 scripts/winmd/ 包，各子模块提供统一接口。
 """

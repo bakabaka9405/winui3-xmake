@@ -2,7 +2,7 @@
 """NuGet 包配置解析模块。
 
 从 packages.config 读取所有 NuGet 包的精确版本，
-提供类型化查询接口与包路径构造功能，供 build_winui3.py 等构建脚本使用。
+提供类型化查询接口与包路径构造功能，供 WinUI3 构建脚本使用。
 """
 
 from __future__ import annotations

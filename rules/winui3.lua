@@ -1,11 +1,11 @@
--- xmake rule for WinUI3 C++/WinRT build pipeline
+-- xmake rule for WinUI3 C++/WinRT build pipeline (dual-entry: pre-XAML + XAML/PRI)
 --
 -- This single rule wraps the entire WinUI3 application lifecycle:
 --   1. Target configuration  (kind, filename, output dir, policy)
 --   2. Compiler flags        (C++20, WinRT, Unicode)
 --   3. NuGet include paths   (auto-discovered from packages.config)
 --   4. Link libraries        (Bootstrap, WindowsApp)
---   5. Code generation       (XAML + IDL → WinMD → projection via Python)
+--   5. Code generation       (two-phase via Python: pre-XAML entry + XAML/PRI entry, sharing build_winui3_common.py)
 --   6. Post-build            (copy Bootstrap DLL and resources.pri to output)
 --   7. Run                   (execute from output directory)
 
@@ -68,6 +68,16 @@ rule("winui3.app")
 
         -- 全权在 on_load 中生成 XamlMetaDataProvider.idl 和 .cpp，
         -- Python 管线不再负责生成，仅负责将已存在的 .idl 纳入 MIDL 编译。
+        local function write_file_if_changed(filepath, content)
+            if os.isfile(filepath) then
+                local existing = io.readfile(filepath)
+                if existing == content then
+                    return false
+                end
+            end
+            io.writefile(filepath, content)
+            return true
+        end
         do
             local namespace = target:values("winui3.namespace") or "xmake_demo"
             local gen_dir = path.join(target:targetdir(), "generated")
@@ -81,9 +91,9 @@ rule("winui3.app")
                 "namespace %s\n{\n    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider\n    {\n        XamlMetaDataProvider();\n    }\n}\n",
                 namespace
             )
-            io.writefile(xmp_idl, idl_content)
+            write_file_if_changed(xmp_idl, idl_content)
             -- 生成 .cpp 存根（包含 cppwinrt 生成的实现文件）
-            io.writefile(xmp_file, '#include "pch.h"\n#include "XamlMetaDataProvider.h"\n#include "XamlMetaDataProvider.g.cpp"\n')
+            write_file_if_changed(xmp_file, '#include "pch.h"\n#include "XamlMetaDataProvider.h"\n#include "XamlMetaDataProvider.g.cpp"\n')
             -- 注册 .cpp 为编译源文件
             target:add("files", xmp_file)
         end
@@ -117,7 +127,7 @@ rule("winui3.app")
         target:add("ldflags", "/SUBSYSTEM:WINDOWS")
     end)
 
-    --  before_build: code generation (Python orchestrator) 
+    --  before_build: two-entry code generation via pre-XAML and XAML/PRI Python scripts
     before_build(function (target)
         import("core.project.depend")
 
@@ -125,11 +135,26 @@ rule("winui3.app")
         local src_dir   = target:values("winui3.src_dir") or path.join(os.projectdir(), "src")
         local root_dir  = target:values("winui3.root_dir") or os.projectdir()
         local build_dir = target:targetdir()
-        local shared_projection_dir = path.join(path.directory(build_dir), "shared", "generated")
+        local build_dir_root = path.directory(build_dir)  -- e.g. build/windows/release/x64
+        local shared_projection_dir = path.join(build_dir_root, "shared", "generated")
 
-        depend.on_changed(function ()
-            local py     = "python"
-            local script = path.join(root_dir, "scripts/build_winui3.py")
+        -- Helper: build Python script arguments for pre-XAML entry (phases 1-4)
+        local function py_args_pre()
+            local script = path.join(root_dir, "scripts/build_winui3_pre_xaml.py")
+            local args   = {
+                path.translate(script),
+                "--build-dir", path.translate(build_dir),
+                "--project-dir", path.translate(root_dir),
+                "--namespace", namespace,
+                "--src-dir", path.translate(src_dir),
+                "--shared-projection-dir", path.translate(shared_projection_dir),
+            }
+            return args
+        end
+
+        -- Helper: build Python script arguments for XAML/PRI entry (phases 6-8)
+        local function py_args_xaml()
+            local script = path.join(root_dir, "scripts/build_winui3_xaml_pri.py")
             local args   = {
                 path.translate(script),
                 "--build-dir", path.translate(build_dir),
@@ -145,21 +170,54 @@ rule("winui3.app")
                 table.insert(args, path.translate(xaml_compiler_path))
             end
 
+            return args
+        end
+
+        -- Stamp 1 -- Pre-XAML generation (shared projection, MIDL, mdmerge, cppwinrt)
+        -- Runs phases 1-4 via scripts/build_winui3_pre_xaml.py.
+        -- Includes generated XamlMetaDataProvider files.
+        local idl_stamp_file = path.join(build_dir, "generated", ".idl_stamp")
+
+        depend.on_changed(function ()
+            local py   = "python"
+            local args = py_args_pre()
             os.runv(py, args)
         end, {
-            dependfile = path.join(build_dir, "generated", ".codegen_stamp"),
+            dependfile = idl_stamp_file,
+            files = table.join(
+                os.files(path.join(src_dir, "**.idl")),
+                os.files(path.join(build_dir, "generated", "XamlMetaDataProvider.idl")),
+                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
+                {
+                    path.join(build_dir, "generated", "XamlMetaDataProvider.cpp"),
+                    path.join(root_dir, "scripts", "build_winui3_common.py"),
+                    path.join(root_dir, "scripts", "build_winui3_pre_xaml.py"),
+                    path.join(root_dir, "scripts", "nuget_config.py"),
+                    path.join(root_dir, "scripts", "nuget_config.lua"),
+                    path.join(root_dir, "scripts", "plat_info.py"),
+                    path.join(root_dir, "rules", "winui3.lua"),
+                    path.join(root_dir, "packages.config"),
+                }
+            ),
+        })
+
+        -- Stamp 2 -- XAML compilation and resource indexing
+        -- Runs phases 6-8 via scripts/build_winui3_xaml_pri.py.
+        -- DEPENDS on Stamp 1's dependfile to ensure IDL changes cascade to XAML.
+        depend.on_changed(function ()
+            local py   = "python"
+            local args = py_args_xaml()
+            os.runv(py, args)
+        end, {
+            dependfile = path.join(build_dir, "generated", ".xaml_stamp"),
             files = table.join(
                 os.files(path.join(src_dir, "**.xaml")),
                 os.files(path.join(src_dir, "**.xaml.h")),
-                os.files(path.join(src_dir, "**.idl")),
-                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
-                { 
-                    path.join(root_dir, "scripts", "build_winui3.py"), 
-                    path.join(root_dir, "scripts", "plat_info.py"), 
-                    path.join(root_dir, "scripts", "nuget_config.py"), 
-                    path.join(root_dir, "scripts", "nuget_config.lua"), 
-                    path.join(root_dir, "rules", "winui3.lua"), 
-                    path.join(root_dir, "packages.config") 
+                {
+                    path.join(root_dir, "scripts", "build_winui3_common.py"),
+                    path.join(root_dir, "scripts", "build_winui3_xaml_pri.py"),
+                    path.join(root_dir, "rules", "winui3.lua"),
+                    idl_stamp_file,  -- cascade IDL changes to XAML
                 }
             ),
         })

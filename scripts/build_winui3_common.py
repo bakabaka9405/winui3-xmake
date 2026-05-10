@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the WinUI 3 C++/WinRT code generation pipeline used by xmake."""
+"""Shared build context, utility functions, and tool resolution for WinUI 3 C++/WinRT code generation pipeline. Used by build_winui3_pre_xaml.py and build_winui3_xaml_pri.py."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,6 @@ from plat_info import (
     WINDOWS_SDK_ROOT,
     WINDOWS_SDK_VERSION,
     BuildError,
-    path_env_with_vc,
     platform_xml_path,
     require_dir,
     require_file,
@@ -29,9 +29,85 @@ from winmd import win2d as winmd_win2d
 
 from nuget_config import NuGetConfig, BUILD_TOOLS_BIN_VERSION
 
+
+# ── 数据模式定义 ────────────────────────────────────────────────
+
+
+@dataclass(slots=True, frozen=True)
+class BuildLayout:
+    """构建输出目录布局，描述项目中所有生成产物与中间文件的路径组织。
+
+    Attributes:
+        project_dir: 项目根目录绝对路径。
+        build_dir: 构建输出根目录绝对路径。
+        generated_dir: 生成产物目录（build_dir/generated）。
+        generated_sources_dir: 生成 C++ 源码目录（generated_dir/sources）。
+        shared_projection_dir: 共享 C++/WinRT 投影头目录。
+        winmd_unmerged_dir: 未合并 WinMD 中间产物目录。
+        winmd_merged_dir: 合并后 WinMD 产物目录。
+        merged_winmd: 合并后 WinMD 文件路径。
+        src_dir: 用户源码目录。
+    """
+
+    project_dir: Path
+    build_dir: Path
+    generated_dir: Path
+    generated_sources_dir: Path
+    shared_projection_dir: Path
+    winmd_unmerged_dir: Path
+    winmd_merged_dir: Path
+    merged_winmd: Path
+    src_dir: Path
+
+
+@dataclass(slots=True, frozen=True)
+class ResolvedInputs:
+    """构建流水线所需的全部外部工具与输入路径解析结果。
+
+    Attributes:
+        cppwinrt_exe: C++/WinRT 编译器可执行文件路径。
+        midl_exe: MIDL 编译器可执行文件路径。
+        mdmerge_exe: WinMD 合并工具可执行文件路径。
+        buildtools_bin: Windows SDK BuildTools 二进制目录。
+        winsdk_root: Windows SDK 安装根目录。
+        winsdk_version: Windows SDK UAP 版本号。
+        platform_winmds: Windows SDK 平台 API 契约 WinMD 文件列表。
+        appsdk_winmds: Windows App SDK 子包 WinMD 文件列表。
+        webview2_winmd: WebView2 Core WinMD 文件路径。
+        win2d_winmds: Win2D Canvas WinMD 文件列表。
+        ref_winmds: 所有引用 WinMD 的聚合列表（platform + webview2 + appsdk + win2d）。
+        foundation_meta: Windows.Foundation.FoundationContract 元数据目录。
+        sdk_include_dir: Windows SDK 头文件包含目录。
+        xaml_compiler: XamlCompiler.exe 可执行文件路径。
+        genxbf_dir: GenXbf 原生 DLL 目录。
+    """
+
+    cppwinrt_exe: Path
+    midl_exe: Path
+    mdmerge_exe: Path
+    buildtools_bin: Path
+    winsdk_root: Path
+    winsdk_version: str
+    platform_winmds: list[Path]
+    appsdk_winmds: list[Path]
+    webview2_winmd: Path
+    win2d_winmds: list[Path]
+    ref_winmds: list[Path]
+    foundation_meta: Path
+    sdk_include_dir: Path
+    xaml_compiler: Path
+    genxbf_dir: Path
+
+
 # 输出控制
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
 _verbose: bool = False
+
+
+def set_verbose(val: bool) -> None:
+    """设置全局详细输出模式，供入口脚本在解析参数后调用。"""
+    global _verbose
+    _verbose = val
 
 
 # 文件发现基础设施
@@ -302,9 +378,19 @@ def build_xaml_json(
     return data
 
 
-def write_text(path: Path, content: str) -> None:
+def write_text(path: Path, content: str) -> bool:
+    """Write content to path only if content differs from existing file.
+
+    Returns True if file was written, False if skipped (content unchanged).
+    """
+    try:
+        if path.is_file() and path.read_text(encoding="utf-8") == content:
+            return False
+    except (OSError, UnicodeDecodeError):
+        pass
     try:
         path.write_text(content, encoding="utf-8", newline="\n")
+        return True
     except OSError as exc:
         raise BuildError(f"failed to write {str(path)}: {exc}") from exc
 
@@ -458,366 +544,160 @@ def run_midl(
     run_command(command, env=env)
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Build WinUI 3 generated C++/WinRT and XAML artifacts."
+# ── 布局与工具解析（由入口脚本在 main() 中调用）─────────────────
+
+
+def resolve_layout(args: argparse.Namespace) -> BuildLayout:
+    """根据解析后的命令行参数计算构建目录布局，并创建所有输出目录。
+
+    Args:
+        args: 已解析的 argparse.Namespace，需包含 project_dir、build_dir、
+              namespace、src_dir、shared_projection_dir 等字段。
+
+    Returns:
+        包含所有标准化路径的 BuildLayout 实例。
+    """
+    project_dir = absolute_path(args.project_dir)
+    build_dir = absolute_path(args.build_dir)
+    generated_dir = build_dir / "generated"
+    generated_sources_dir = generated_dir / "sources"
+    shared_projection_dir = (
+        absolute_path(args.shared_projection_dir)
+        if args.shared_projection_dir
+        else generated_dir
     )
-    parser.add_argument(
-        "--build-dir", type=Path, required=True, help="Build output directory."
+    winmd_unmerged_dir = build_dir / "winmd_unmerged"
+    winmd_merged_dir = build_dir / "winmd_merged"
+    merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
+
+    src_dir = (
+        absolute_path(Path(args.src_dir)) if args.src_dir else project_dir / "src"
     )
-    parser.add_argument(
-        "--project-dir",
-        type=Path,
-        default=Path(__file__).resolve().parent.parent,
-        help="Project root directory. Defaults to this script's parent directory.",
+
+    # 创建所有输出目录
+    for directory in [
+        shared_projection_dir,
+        generated_dir,
+        generated_sources_dir,
+        winmd_unmerged_dir,
+        winmd_merged_dir,
+    ]:
+        directory.mkdir(parents=True, exist_ok=True)
+
+    return BuildLayout(
+        project_dir=project_dir,
+        build_dir=build_dir,
+        generated_dir=generated_dir,
+        generated_sources_dir=generated_sources_dir,
+        shared_projection_dir=shared_projection_dir,
+        winmd_unmerged_dir=winmd_unmerged_dir,
+        winmd_merged_dir=winmd_merged_dir,
+        merged_winmd=merged_winmd,
+        src_dir=src_dir,
     )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Enable verbose output: show unfiltered tool output for debugging.",
+
+
+def resolve_inputs(args: argparse.Namespace, layout: BuildLayout) -> ResolvedInputs:
+    """解析外部工具链、WinMD 引用与 Windows SDK 路径。
+
+    包含平台发现（Windows SDK）、NuGet 包解析（packages.config）
+    以及所有 WinMD 元数据收集，并对所有关键路径执行存在性校验。
+
+    Args:
+        args: 已解析的 argparse.Namespace，需包含 xaml_compiler_path（可选）等字段。
+        layout: 由 resolve_layout() 返回的构建布局（预留，供未来扩展使用）。
+
+    Returns:
+        包含所有已验证外部输入的 ResolvedInputs 实例。
+
+    Raises:
+        BuildError: 所需文件或目录不存在时。
+    """
+    # layout 参数预留给未来可能需要基于构建布局解析输入的场景
+    _ = layout
+
+    # ── NuGet 包与工具路径解析 ──
+    config = NuGetConfig.from_packages_config()
+
+    # WinAppSDK 2.0.1 sub-packages (stable GA, April 2026, SemVer)
+    foundation_pkg = config.package_path("Microsoft.WindowsAppSDK.Foundation")
+    winui_pkg = config.package_path("Microsoft.WindowsAppSDK.WinUI")
+    ixp_pkg = config.package_path("Microsoft.WindowsAppSDK.InteractiveExperiences")
+    cppwinrt_exe = (
+        config.package_path("Microsoft.Windows.CppWinRT") / "bin" / "cppwinrt.exe"
     )
-    parser.add_argument(
-        "--namespace",
-        type=str,
-        default="xmake_demo",
-        help="Root namespace for the project.",
+    buildtools_bin = (
+        config.package_path("Microsoft.Windows.SDK.BuildTools")
+        / "bin"
+        / BUILD_TOOLS_BIN_VERSION
+        / "x64"
     )
-    parser.add_argument(
-        "--src-dir",
-        type=str,
-        default=None,
-        help="Source directory containing .xaml/.idl files. Defaults to <project-dir>/src.",
+    midl_exe = buildtools_bin / "midl.exe"
+    mdmerge_exe = buildtools_bin / "mdmerge.exe"
+    xaml_compiler = winui_pkg / "tools" / "net472" / "XamlCompiler.exe"
+    genxbf_dir = winui_pkg / "tools"
+
+    # 若用户提供了自定义 XAML 编译器路径指向独立编译器目录
+    xaml_compiler_path_override = getattr(args, "xaml_compiler_path", None)
+    if xaml_compiler_path_override:
+        xaml_compiler = (
+            absolute_path(Path(xaml_compiler_path_override)) / "XamlCompiler.exe"
+        )
+
+    # ── WinMD 收集 ──
+    webview2_winmds = winmd_webview2.collect(config)
+    if len(webview2_winmds) != 1:
+        raise BuildError(
+            f"expected exactly 1 WebView2 WinMD, got {len(webview2_winmds)}"
+        )
+    webview2_winmd = webview2_winmds[0]
+
+    win2d_winmds = winmd_win2d.collect(config)
+
+    # ── Windows SDK 解析 ──
+    winsdk_root = require_dir(WINDOWS_SDK_ROOT, "Windows SDK root")
+    winsdk_version, _ = platform_xml_path(winsdk_root, WINDOWS_SDK_VERSION)
+    platform_winmds = winmd_platform.collect(winsdk_root, winsdk_version)
+    appsdk_winmds = winmd_appsdk.collect(config)
+    ref_winmds = [*platform_winmds, webview2_winmd, *appsdk_winmds, *win2d_winmds]
+    foundation_meta = winmd_platform.find_metadata_dir(winsdk_root, winsdk_version)
+    sdk_include_dir = require_dir(
+        winsdk_root / "Include" / winsdk_version,
+        "Windows SDK include directory",
     )
-    parser.add_argument(
-        "--shared-projection-dir",
-        type=Path,
-        default=None,
-        help="Shared output directory for platform, WebView2, and Windows App SDK C++/WinRT projection headers.",
+
+    # ── 完整性校验 ──
+    require_file(cppwinrt_exe, "cppwinrt.exe")
+    require_file(midl_exe, "midl.exe")
+    require_file(mdmerge_exe, "mdmerge.exe")
+    require_file(xaml_compiler, "XamlCompiler.exe")
+    require_file(webview2_winmd, "WebView2 WinMD")
+    require_dir(foundation_pkg, "Foundation sub-package")
+    require_dir(winui_pkg, "WinUI sub-package")
+    require_dir(ixp_pkg, "InteractiveExperiences sub-package")
+    require_dir(genxbf_dir, "GenXbf directory")
+    require_dir(vc_bin_path(), "VC tools bin directory")
+
+    for include_name in ["um", "shared", "winrt"]:
+        require_dir(
+            sdk_include_dir / include_name,
+            f"Windows SDK {include_name} include directory",
+        )
+
+    return ResolvedInputs(
+        cppwinrt_exe=cppwinrt_exe,
+        midl_exe=midl_exe,
+        mdmerge_exe=mdmerge_exe,
+        buildtools_bin=buildtools_bin,
+        winsdk_root=winsdk_root,
+        winsdk_version=winsdk_version,
+        platform_winmds=platform_winmds,
+        appsdk_winmds=appsdk_winmds,
+        webview2_winmd=webview2_winmd,
+        win2d_winmds=win2d_winmds,
+        ref_winmds=ref_winmds,
+        foundation_meta=foundation_meta,
+        sdk_include_dir=sdk_include_dir,
+        xaml_compiler=xaml_compiler,
+        genxbf_dir=genxbf_dir,
     )
-    parser.add_argument(
-        "--xaml-compiler-path",
-        type=Path,
-        default=None,
-        help="Custom directory containing XamlCompiler.exe. Only the compiler executable is overridden; GenXbf native DLLs still come from the NuGet package.",
-    )
-    return parser.parse_args(argv)
-
-
-def main(argv: list[str] | None = None) -> int:
-    global _verbose
-    args = parse_args(sys.argv[1:] if argv is None else argv)
-    _verbose = args.verbose
-
-    try:
-        project_dir = absolute_path(args.project_dir)
-        build_dir = absolute_path(args.build_dir)
-        generated_dir = build_dir / "generated"
-        generated_sources_dir = generated_dir / "sources"
-        shared_projection_dir = (
-            absolute_path(args.shared_projection_dir)
-            if args.shared_projection_dir
-            else generated_dir
-        )
-        winmd_unmerged_dir = build_dir / "winmd_unmerged"
-        winmd_merged_dir = build_dir / "winmd_merged"
-        merged_winmd = winmd_merged_dir / f"{args.namespace}.winmd"
-
-        config = NuGetConfig.from_packages_config()
-
-        # WinAppSDK 2.0.1 sub-packages (stable GA, April 2026, SemVer)
-        foundation_pkg = config.package_path("Microsoft.WindowsAppSDK.Foundation")
-        winui_pkg = config.package_path("Microsoft.WindowsAppSDK.WinUI")
-        ixp_pkg = config.package_path("Microsoft.WindowsAppSDK.InteractiveExperiences")
-        cppwinrt_exe = (
-            config.package_path("Microsoft.Windows.CppWinRT") / "bin" / "cppwinrt.exe"
-        )
-        buildtools_bin = (
-            config.package_path("Microsoft.Windows.SDK.BuildTools")
-            / "bin"
-            / BUILD_TOOLS_BIN_VERSION
-            / "x64"
-        )
-        midl_exe = buildtools_bin / "midl.exe"
-        mdmerge_exe = buildtools_bin / "mdmerge.exe"
-        xaml_compiler = winui_pkg / "tools" / "net472" / "XamlCompiler.exe"
-        genxbf_dir = winui_pkg / "tools"
-
-        # 若用户提供了自定义 XAML 编译器路径
-        if args.xaml_compiler_path:
-            xaml_compiler = absolute_path(args.xaml_compiler_path) / "XamlCompiler.exe"
-
-        webview2_winmds = winmd_webview2.collect(config)
-        if len(webview2_winmds) != 1:
-            raise BuildError(
-                f"expected exactly 1 WebView2 WinMD, got {len(webview2_winmds)}"
-            )
-        webview2_winmd = webview2_winmds[0]
-
-        # Win2D WinMD 收集
-        win2d_winmds = winmd_win2d.collect(config)
-
-        src_dir = require_dir(
-            absolute_path(Path(args.src_dir)) if args.src_dir else project_dir / "src",
-            "project src directory",
-        )
-
-        # 动态发现用户编写的源文件，替代硬编码文件列表
-        xaml_files = sorted(src_dir.rglob("*.xaml"))
-        if len(xaml_files) == 0:
-            raise BuildError(f"no .xaml files found in {str(src_dir)}")
-
-        idl_files = sorted(src_dir.rglob("*.idl"))
-
-        require_file(cppwinrt_exe, "cppwinrt.exe")
-        require_file(midl_exe, "midl.exe")
-        require_file(mdmerge_exe, "mdmerge.exe")
-        require_file(xaml_compiler, "XamlCompiler.exe")
-        require_file(webview2_winmd, "WebView2 WinMD")
-        require_dir(foundation_pkg, "Foundation sub-package")
-        require_dir(winui_pkg, "WinUI sub-package")
-        require_dir(ixp_pkg, "InteractiveExperiences sub-package")
-        require_dir(genxbf_dir, "GenXbf directory")
-        require_dir(vc_bin_path(), "VC tools bin directory")
-
-        winsdk_root = require_dir(WINDOWS_SDK_ROOT, "Windows SDK root")
-        winsdk_version, _ = platform_xml_path(winsdk_root, WINDOWS_SDK_VERSION)
-        platform_winmds = winmd_platform.collect(winsdk_root, winsdk_version)
-        appsdk_winmds = winmd_appsdk.collect(config)
-        ref_winmds = [*platform_winmds, webview2_winmd, *appsdk_winmds, *win2d_winmds]
-        foundation_meta = winmd_platform.find_metadata_dir(winsdk_root, winsdk_version)
-        sdk_include_dir = require_dir(
-            winsdk_root / "Include" / winsdk_version,
-            "Windows SDK include directory",
-        )
-        for include_name in ["um", "shared", "winrt"]:
-            require_dir(
-                sdk_include_dir / include_name,
-                f"Windows SDK {include_name} include directory",
-            )
-
-        for directory in [
-            shared_projection_dir,
-            generated_dir,
-            generated_sources_dir,
-            winmd_unmerged_dir,
-            winmd_merged_dir,
-        ]:
-            directory.mkdir(parents=True, exist_ok=True)
-
-        print(f"Project: {str(project_dir)}")
-        print(f"Build:   {str(build_dir)}")
-        print(f"Shared:  {str(shared_projection_dir)}")
-        print(f"WinSDK:  {str(winsdk_root)} ({winsdk_version})")
-        print(
-            f"Refs:    {len(platform_winmds)} platform, {len(appsdk_winmds)} WinAppSDK, 1 WebView2"
-        )
-
-        print_phase("[1/8] Generate shared platform, WebView2, and WinAppSDK headers")
-        shared_projection_fingerprint = projection_fingerprint(
-            build_script=Path(__file__).resolve(),
-            cppwinrt_exe=cppwinrt_exe,
-            platform_winmds=platform_winmds,
-            webview2_winmd=webview2_winmd,
-            appsdk_winmds=appsdk_winmds,
-            win2d_winmds=win2d_winmds,
-        )
-        if is_shared_projection_current(
-            shared_projection_dir, shared_projection_fingerprint
-        ):
-            print("  shared projections are up to date")
-        else:
-            generate_shared_projection_headers(
-                cppwinrt_exe=cppwinrt_exe,
-                shared_projection_dir=shared_projection_dir,
-                platform_winmds=platform_winmds,
-                webview2_winmd=webview2_winmd,
-                appsdk_winmds=appsdk_winmds,
-                win2d_winmds=win2d_winmds,
-            )
-            write_shared_projection_stamp(
-                shared_projection_dir, shared_projection_fingerprint
-            )
-
-        print_phase("[2/8] Compile IDL to WinMD")
-
-        # 清理上次构建的陈旧 WinMD 文件（递归，因 IDL 可能位于子目录）
-        clean_stale_files(winmd_unmerged_dir, "**/*.winmd", required=True)
-
-        midl_env = path_env_with_vc(vc_bin_path())
-
-        xmp_idl = generated_dir / "XamlMetaDataProvider.idl"
-        if xmp_idl.exists():
-            idl_files.append(xmp_idl)
-
-        for idl_path in idl_files:
-            # 保留相对于 src_dir 的目录结构生成 winmd，避免子目录同名 IDL 冲突
-            out_winmd = idl_to_winmd_path(idl_path, src_dir, winmd_unmerged_dir)
-            out_winmd.parent.mkdir(parents=True, exist_ok=True)
-            run_midl(
-                midl_exe=midl_exe,
-                idl=idl_path,
-                out_winmd=out_winmd,
-                foundation_meta=foundation_meta,
-                sdk_include_dir=sdk_include_dir,
-                ref_winmds=ref_winmds,
-                env=midl_env,
-            )
-
-        print_phase("[3/8] Merge WinMDs")
-        unmerged_winmds = sorted(winmd_unmerged_dir.rglob("*.winmd"))
-        if not unmerged_winmds:
-            raise BuildError(
-                f"no .winmd files found in {str(winmd_unmerged_dir)} — MIDL compilation failed"
-            )
-        mdmerge = [str(mdmerge_exe), "-o", str(winmd_merged_dir)]
-        for directory in unique_parent_dirs(ref_winmds):
-            mdmerge.extend(["-metadata_dir", str(directory)])
-        for wm in unmerged_winmds:
-            mdmerge.extend(["-i", str(wm)])
-        mdmerge.extend(["-partial", "-n:1"])
-        run_command(mdmerge)
-        require_file(merged_winmd, "merged WinMD")
-
-        print_phase("[4/8] Generate project C++/WinRT sources")
-        if not same_path(shared_projection_dir, generated_dir):
-            remove_stale_projection_dir(generated_dir / "winrt")
-        cppwinrt_project = [
-            str(cppwinrt_exe),
-            "-in",
-            str(merged_winmd),
-            "-out",
-            str(generated_dir),
-            "-comp",
-            str(generated_sources_dir),
-            "-name",
-            args.namespace,
-            "-pch",
-            "pch.h",
-            "-prefix",
-            "-optimize",
-            "-overwrite",
-        ]
-        for winmd in ref_winmds:
-            cppwinrt_project.extend(["-ref", str(winmd)])
-        run_command(cppwinrt_project)
-
-        print_phase("[6/8] Run XAML compiler pass 1")
-
-        # 清理上次构建的陈旧 .xbf 文件，防止已删除 XAML 的残留 XBF 被 makepri 打包
-        clean_stale_files(generated_dir, "**/*.xbf")
-
-        pass1_json = generated_dir / "xaml.pass1.in.json"
-        pass1_out = generated_dir / "xaml.pass1.out.json"
-        write_json(
-            pass1_json,
-            build_xaml_json(
-                generated_dir=generated_dir,
-                src_dir=src_dir,
-                namespace=args.namespace,
-                winsdk_version=winsdk_version,
-                ref_winmds=ref_winmds,
-                merged_winmd=merged_winmd,
-                genxbf_path=genxbf_dir,
-                is_pass1=True,
-            ),
-        )
-        run_command(
-            [
-                str(xaml_compiler),
-                str(pass1_json),
-                str(pass1_out),
-            ]
-        )
-
-        print_phase("[7/8] Run XAML compiler pass 2")
-        pass2_json = generated_dir / "xaml.pass2.in.json"
-        pass2_out = generated_dir / "xaml.pass2.out.json"
-        write_json(
-            pass2_json,
-            build_xaml_json(
-                generated_dir=generated_dir,
-                src_dir=src_dir,
-                namespace=args.namespace,
-                winsdk_version=winsdk_version,
-                ref_winmds=ref_winmds,
-                merged_winmd=merged_winmd,
-                genxbf_path=genxbf_dir,
-                is_pass1=False,
-            ),
-        )
-        run_command(
-            [
-                str(xaml_compiler),
-                str(pass2_json),
-                str(pass2_out),
-            ]
-        )
-
-        # Phase 8: Generate .pri resource file (makepri)
-        print_phase("[8/8] Generate .pri resource index")
-        makepri_exe = buildtools_bin / "makepri.exe"
-        if not makepri_exe.is_file():
-            raise BuildError(f"makepri.exe not found at {makepri_exe}")
-
-        # Collect .xbf files generated by XamlCompiler (recursive to cover subdirectories)
-        xbf_files = sorted(generated_dir.rglob("*.xbf"))
-        if len(xbf_files) == 0:
-            raise BuildError("No .xbf files found - XAML compilation may have failed")
-
-        # Write resfiles list (full paths to .xbf files)
-        resfiles_path = generated_dir / "layout.resfiles"
-        resfiles_content = "\n".join(str(f) for f in xbf_files)
-        resfiles_path.write_text(resfiles_content, encoding="utf-8")
-
-        # Write priconfig.xml
-        priconfig_path = generated_dir / "priconfig.xml"
-        priconfig_xml = f"""<?xml version="1.0" encoding="utf-8"?>
-<resources targetOsVersion="10.0.0" majorVersion="1">
-  <index root="{generated_dir}" startIndexAt="{resfiles_path}">
-    <default>
-      <qualifier name="Language" value="en-US"/>
-      <qualifier name="Contrast" value="standard"/>
-      <qualifier name="Scale" value="200"/>
-      <qualifier name="HomeRegion" value="001"/>
-      <qualifier name="TargetSize" value="256"/>
-      <qualifier name="LayoutDirection" value="LTR"/>
-      <qualifier name="DXFeatureLevel" value="DX9"/>
-      <qualifier name="Configuration" value=""/>
-      <qualifier name="AlternateForm" value=""/>
-      <qualifier name="Platform" value="UAP"/>
-    </default>
-    <indexer-config type="RESFILES" qualifierDelimiter="."/>
-    <indexer-config type="EMBEDFILES"/>
-  </index>
-</resources>"""
-        priconfig_path.write_text(priconfig_xml, encoding="utf-8")
-
-        pri_output = generated_dir / "resources.pri"
-        run_command(
-            [
-                str(makepri_exe),
-                "new",
-                "/cf",
-                str(priconfig_path),
-                "/pr",
-                str(project_dir),
-                "/o",
-                "/of",
-                str(pri_output),
-            ]
-        )
-
-        print("\n=== WinUI 3 code generation complete ===", flush=True)
-    except BuildError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-    except subprocess.CalledProcessError:
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

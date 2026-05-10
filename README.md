@@ -74,21 +74,21 @@ winui3-xmake/
 - `rules/winui3.lua`：定义 `winui3.app` 规则，配置编译、链接、代码生成和运行时文件复制。
 - `rules/demo.lua`：定义 `demo.common` 规则，为示例目标挂载共享入口点、预编译头和清单。
 - `rules/dist.lua`：定义 `mode.dist` 分发构建模式，配置优化、符号剥离和静态运行库。
-- `scripts/build_winui3.py`：执行 WinUI 3 代码生成流水线。
+- `scripts/build_winui3_common.py`：承载共享上下文、路径/工具解析与公共辅助函数，供两个构建入口导入。
+- `scripts/build_winui3_pre_xaml.py`：前置生成入口，执行共享投影头生成、MIDL 编译、WinMD 合并与 C++/WinRT 源码投影（阶段 1-4）。
+- `scripts/build_winui3_xaml_pri.py`：XAML/PRI 生成入口，执行 XAML Pass 1 / Pass 2 编译与资源索引生成（阶段 6-8）。
 - `scripts/plat_info.py`：解析 Windows SDK、MSVC 工具链和 NuGet 包路径。
 
 ## 构建流水线
 
-`winui3.app` 在构建前调用 `scripts/build_winui3.py`，执行以下步骤：
+`winui3.app` 在构建前通过两个专用入口调用 Python 脚本
 
-1. 生成共享 C++/WinRT 投影头（Windows 平台 WinMD、WebView2、Windows App SDK）。
-2. 使用 MIDL 编译项目 IDL，生成未合并 WinMD。
-3. 使用 `mdmerge` 合并 WinMD。
-4. 基于合并后的 WinMD 生成项目 C++/WinRT 源码。
-5. 在需要时生成 `XamlMetaDataProvider` 源码。
-6. 执行 XAML Pass 1，生成 `.xbf`。
-7. 执行 XAML Pass 2，生成 `.g.hpp` / `.g.cpp`。
-8. 使用 `makepri` 生成 `resources.pri`，并复制到目标输出目录。
+1. `build_winui3_pre_xaml.py` 负责前置生成（阶段 1-4）：生成共享 C++/WinRT 投影头（Windows 平台 WinMD、WebView2、Windows App SDK），使用 MIDL 编译项目 IDL 并合并 WinMD，然后基于合并后的 WinMD 生成项目 C++/WinRT 源码。
+2. `build_winui3_xaml_pri.py` 负责 XAML/PRI 生成（阶段 6-8）：执行 XAML Pass 1 生成 `.xbf`，执行 XAML Pass 2 生成 `.g.hpp` / `.g.cpp`，最后使用 `makepri` 生成 `resources.pri` 并复制到目标输出目录。
+
+两个入口共享 `build_winui3_common.py` 中的路径解析、工具函数与数据模型。
+
+> 阶段 5 在当前流水线中不参与执行。
 
 构建完成后，输出目录包含应用程序、生成代码、WinMD 中间产物、`resources.pri` 和 `Microsoft.WindowsAppRuntime.Bootstrap.dll`。
 
