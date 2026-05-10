@@ -1,0 +1,98 @@
+<Page
+    x:Class="explorer.ExplorerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:explorer"
+    Loaded="OnLoaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="0" Padding="8,4" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4"
+                        VerticalAlignment="Center">
+                <AppBarButton x:Name="BackButton" Icon="Back" Label="Back"
+                              IsCompact="True" IsEnabled="False" Click="OnBack" />
+                <AppBarButton x:Name="ForwardButton" Icon="Forward" Label="Forward"
+                              IsCompact="True" IsEnabled="False" Click="OnForward" />
+            </StackPanel>
+            <Border Grid.Column="1" VerticalAlignment="Center"
+                    BorderThickness="1" CornerRadius="4"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    Background="{ThemeResource ControlFillColorDefaultBrush}"
+                    Padding="8,0">
+                <BreadcrumbBar x:Name="Breadcrumb"
+                               ItemClicked="OnBreadcrumbClicked" />
+            </Border>
+            <AppBarButton x:Name="ViewToggleBtn" Grid.Column="2"
+                          IsCompact="True" Click="OnViewToggle">
+                <AppBarButton.Icon>
+                    <FontIcon x:Name="ViewToggleIcon" Glyph="&#xF0E2;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+        </Grid>
+
+        <!-- Content -->
+        <Grid Grid.Row="1">
+            <GridView x:Name="FileGridView"
+                      Padding="8"
+                      SelectionMode="Single"
+                      IsItemClickEnabled="False"
+                      DoubleTapped="OnItemDoubleTapped"
+                      SelectionChanged="OnSelectionChanged">
+                <GridView.ItemContainerStyle>
+                    <Style TargetType="GridViewItem">
+                        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                    </Style>
+                </GridView.ItemContainerStyle>
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="local:FileItem">
+                        <StackPanel Orientation="Vertical" Spacing="4"
+                                    Padding="8" Width="96" HorizontalAlignment="Center">
+                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="32"
+                                      HorizontalAlignment="Center" />
+                            <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap"
+                                       TextAlignment="Center"
+                                       FontSize="12" />
+                        </StackPanel>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+
+            <ListView x:Name="FileListView"
+                      Padding="8"
+                      SelectionMode="Single"
+                      IsItemClickEnabled="False"
+                      Visibility="Collapsed"
+                      DoubleTapped="OnItemDoubleTapped"
+                      SelectionChanged="OnSelectionChanged">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:FileItem">
+                        <StackPanel Orientation="Horizontal" Spacing="12" Padding="4,2">
+                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="16"
+                                      VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind Name}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="2" BorderThickness="0,1,0,0"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                Padding="12,4">
+            <TextBlock x:Name="StatusText" FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Border>
+    </Grid>
+</Page>

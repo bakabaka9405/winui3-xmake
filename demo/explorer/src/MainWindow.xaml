@@ -1,0 +1,22 @@
+<Window
+    x:Class="explorer.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+    <NavigationView
+        x:Name="NavView"
+        PaneDisplayMode="LeftCompact"
+        IsSettingsVisible="False"
+        ItemInvoked="NavView_ItemInvoked">
+        <NavigationView.MenuItems>
+            <NavigationViewItem Icon="Home"     Content="Desktop"   Tag="Desktop" />
+            <NavigationViewItem Icon="Document" Content="Documents" Tag="Documents" />
+            <NavigationViewItem Icon="Download" Content="Downloads" Tag="Downloads" />
+            <NavigationViewItem Icon="Pictures" Content="Pictures"  Tag="Pictures" />
+            <NavigationViewItem Icon="Library" Content="This PC"  Tag="ThisPC" />
+        </NavigationView.MenuItems>
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Window>

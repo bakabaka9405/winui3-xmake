@@ -1,0 +1,19 @@
+namespace explorer
+{
+    [default_interface]
+    runtimeclass FileItem
+    {
+        FileItem(String name, Boolean isFolder, String fullPath);
+        String Name { get; };
+        Boolean IsFolder { get; };
+        String FullPath { get; };
+        String Glyph { get; };
+    }
+
+    [default_interface]
+    runtimeclass ExplorerPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        ExplorerPage();
+        void NavigateTo(String path);
+    }
+}

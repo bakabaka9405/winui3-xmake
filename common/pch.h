@@ -9,11 +9,15 @@
 
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.System.h>
 #include <winrt/Windows.UI.Xaml.Interop.h>
 
 #include <winrt/Microsoft.UI.Dispatching.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
+#include <winrt/Microsoft.UI.Xaml.Input.h>
+#include <winrt/Microsoft.UI.Xaml.Input.h>
 #include <winrt/Microsoft.UI.Xaml.Markup.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/Microsoft.UI.Xaml.XamlTypeInfo.h>
@@ -32,4 +36,5 @@ namespace muxc = winrt::Microsoft::UI::Xaml::Controls;
 namespace muxp = winrt::Microsoft::UI::Xaml::Controls::Primitives;
 namespace mui = winrt::Microsoft::UI;
 namespace muic = winrt::Microsoft::UI::Composition;
+namespace muxi = winrt::Microsoft::UI::Xaml::Input;
 namespace muiw = winrt::Microsoft::UI::Windowing;
