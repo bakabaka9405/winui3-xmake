@@ -117,11 +117,24 @@ xmake build demo.hello
 
 ```lua
 target("demo.<name>")
-    add_rules("winui3.app", "demo.common")
-    set_values("winui3.namespace", "<namespace>")
-    set_values("winui3.src_dir", path.join(os.scriptdir(), "src"))
+    add_rules("winui3.app", {namespace = "<namespace>", src_dir = path.join(os.scriptdir(), "src")})
+    add_rules("demo.common")
     add_files(path.join(os.scriptdir(), "src", "**.cpp"))
 ```
+
+> **注意：** `namespace` 与 `src_dir` 是 `winui3.app` 的必需参数，不存在默认值。`add_rules` 必须使用**独立调用**形式（不可写为 `add_rules("winui3.app", {opts}, "demo.common")` 的复合形式）。
+
+若示例包含 WebView 内容，需额外添加 `webview` 规则并指定 `dist_dir`：
+
+```lua
+target("demo.<name>")
+    add_rules("winui3.app", {namespace = "<namespace>", src_dir = path.join(os.scriptdir(), "src")})
+    add_rules("demo.common")
+    add_rules("webview", {dist_dir = path.join(os.scriptdir(), "src", "web")})
+    add_files(path.join(os.scriptdir(), "src", "**.cpp"))
+```
+
+> **注意：** `dist_dir` 是 `webview` 规则的必需参数，指向包含 Web 前端资源（HTML/CSS/JS）的目录。该参数不存在向 `winui3.src_dir` 的回退逻辑，必须显式指定。
 
 3. 在源码中通过 `#include "pch.h"` 引用共享预编译头。
 
@@ -129,4 +142,10 @@ target("demo.<name>")
 
 ## 命名空间约定
 
-每个示例的根命名空间由 `set_values("winui3.namespace", ...)` 指定。修改命名空间时，请同步检查 IDL、XAML 的 `x:Class` 和手写 C++ 命名空间；构建规则会将该命名空间传给共享 `wWinMain`，用于实例化对应示例的 `App`。
+每个示例的根命名空间通过 `winui3.app` 规则的 `namespace` 参数指定：
+
+```lua
+add_rules("winui3.app", {namespace = "hello", src_dir = path.join(os.scriptdir(), "src")})
+```
+
+修改命名空间时，请同步检查 IDL、XAML 的 `x:Class` 和手写 C++ 命名空间；构建规则会将该命名空间传给共享 `wWinMain`，用于实例化对应示例的 `App`。

@@ -62,6 +62,26 @@ rule("winui3.app")
             target:set("values", "winui3.root_dir", os.projectdir())
         end
 
+        --  ── 参数校验 ─────────────────────────────────────────────
+        --  用户必须通过 add_rules 选项表提供 namespace 和 src_dir；
+        --  不再支持 set_values 传统方式与后备默认值。
+        local namespace = target:extraconf("rules", "winui3.app", "namespace")
+        if namespace == nil or type(namespace) ~= "string" then
+            raise("winui3.app requires \"namespace\" parameter.\nUsage: add_rules(\"winui3.app\", {namespace = \"YourNamespace\", src_dir = path.join(os.scriptdir(), \"src\")})")
+        end
+
+        local src_dir = target:extraconf("rules", "winui3.app", "src_dir")
+        if src_dir == nil or type(src_dir) ~= "string" then
+            raise("winui3.app requires \"src_dir\" parameter.\nUsage: add_rules(\"winui3.app\", {namespace = \"YourNamespace\", src_dir = path.join(os.scriptdir(), \"src\")})")
+        end
+        if not os.isdir(src_dir) then
+            raise("winui3.app: \"src_dir\" path does not exist: " .. src_dir .. "\nUsage: add_rules(\"winui3.app\", {namespace = \"YourNamespace\", src_dir = path.join(os.scriptdir(), \"src\")})")
+        end
+
+        --  校验通过后同步到 target values，供后续模块与 before_build 消费
+        target:set("values", "winui3.namespace", namespace)
+        target:set("values", "winui3.src_dir", src_dir)
+
         --  Generated output include directories 
         target:add("includedirs", path.join(target:targetdir(), "generated"))
         target:add("includedirs", path.join(target:targetdir(), "generated", "sources"))
@@ -79,7 +99,7 @@ rule("winui3.app")
             return true
         end
         do
-            local namespace = target:values("winui3.namespace") or "xmake_demo"
+            local namespace = target:values("winui3.namespace")
             local gen_dir = path.join(target:targetdir(), "generated")
             local xmp_idl = path.join(gen_dir, "XamlMetaDataProvider.idl")
             local xmp_file = path.join(gen_dir, "XamlMetaDataProvider.cpp")
@@ -113,7 +133,7 @@ rule("winui3.app")
             target:add("includedirs", src_dir)
         end
 
-        local namespace = target:values("winui3.namespace") or "xmake_demo"
+        local namespace = target:values("winui3.namespace")
 
         --  Compiler flags 
         target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8",
@@ -131,8 +151,8 @@ rule("winui3.app")
     before_build(function (target)
         import("core.project.depend")
 
-        local namespace = target:values("winui3.namespace") or "xmake_demo"
-        local src_dir   = target:values("winui3.src_dir") or path.join(os.projectdir(), "src")
+        local namespace = target:values("winui3.namespace")
+        local src_dir   = target:values("winui3.src_dir")
         local root_dir  = target:values("winui3.root_dir") or os.projectdir()
         local build_dir = target:targetdir()
         local build_dir_root = path.directory(build_dir)  -- e.g. build/windows/release/x64

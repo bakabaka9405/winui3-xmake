@@ -6,7 +6,7 @@
 -- not include this rule to avoid unnecessary DLL copies.
 --
 -- Usage (in target xmake.lua):
---     add_rules("winui3.app", "demo.common", "webview")
+--     add_rules("webview", {dist_dir = path.join(os.scriptdir(), "src", "web")})
 
 local _cached_webview2_path = nil
 
@@ -32,15 +32,18 @@ rule("webview")
         os.cp(core_src, core_dst)
 
         -- Copy web/ resources (HTML, JS, CSS) from source to output directory
-        local src_dir = target:values("winui3.src_dir")
-        local web_src_index = path.join(src_dir, "web", "index.html")
-        if not os.isfile(web_src_index) then
-            raise("demo.webview: src/web/index.html not found at " .. web_src_index)
+        local dist_dir = target:extraconf("rules", "webview", "dist_dir")
+        if type(dist_dir) ~= "string" then
+            raise("webview requires \"dist_dir\" parameter.\nUsage: add_rules(\"webview\", {dist_dir = path.join(os.scriptdir(), \"src\", \"web\")})")
         end
-        local web_src_dir = path.join(src_dir, "web")
-        -- os.cp(src_dir, dst) copies src directory INTO dst, creating dst/web/ rather than dst/web/web/
-        -- We want web/ placed at the output root, so pass outdir (not web_dst_dir) as the destination
-        os.cp(web_src_dir, outdir)
+        if not os.isdir(dist_dir) then
+            raise("webview: dist_dir directory not found: " .. dist_dir)
+        end
+        local web_src_index = path.join(dist_dir, "index.html")
+        if not os.isfile(web_src_index) then
+            raise("demo.webview: index.html not found at " .. web_src_index)
+        end
+        os.cp(dist_dir, outdir)
 
         cprint("${bright cyan}WebView2:${clear} Evergreen Runtime required — built into Windows 11; separate install needed on Windows 10")
         cprint("${bright cyan}WebView2:${clear} Download: https://developer.microsoft.com/microsoft-edge/webview2/")
