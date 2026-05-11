@@ -15,6 +15,11 @@
 local _cached_nuget_paths = nil
 local _cached_nuget_package_ids = nil
 
+-- 共享 WinRT 投影头的全局生成目录（所有目标、所有配置共用）
+local function shared_projection_dir()
+    return path.join(os.projectdir(), "build", ".gens", "shared", "generated")
+end
+
 rule("winui3.app")
     --  on_load: configure target identity, search paths, compiler & linker flags 
     on_load(function (target)
@@ -118,7 +123,7 @@ rule("winui3.app")
             target:add("files", xmp_file)
         end
 
-        target:add("includedirs", path.join(path.directory(target:targetdir()), "shared", "generated"))
+        target:add("includedirs", shared_projection_dir())
 
         --  NuGet include directories: add every package include/ folder that exists.
         for _, pid in ipairs(package_ids) do
@@ -155,8 +160,7 @@ rule("winui3.app")
         local src_dir   = target:values("winui3.src_dir")
         local root_dir  = target:values("winui3.root_dir") or os.projectdir()
         local build_dir = target:targetdir()
-        local build_dir_root = path.directory(build_dir)  -- e.g. build/windows/release/x64
-        local shared_projection_dir = path.join(build_dir_root, "shared", "generated")
+        local shared_gen = shared_projection_dir()
 
         -- Helper: build Python script arguments for pre-XAML entry (phases 1-4)
         local function py_args_pre()
@@ -167,7 +171,7 @@ rule("winui3.app")
                 "--project-dir", path.translate(root_dir),
                 "--namespace", namespace,
                 "--src-dir", path.translate(src_dir),
-                "--shared-projection-dir", path.translate(shared_projection_dir),
+                "--shared-projection-dir", path.translate(shared_gen),
             }
             return args
         end
@@ -181,7 +185,7 @@ rule("winui3.app")
                 "--project-dir", path.translate(root_dir),
                 "--namespace", namespace,
                 "--src-dir", path.translate(src_dir),
-                "--shared-projection-dir", path.translate(shared_projection_dir),
+                "--shared-projection-dir", path.translate(shared_gen),
             }
 
             local xaml_compiler_path = target:values("winui3.xaml_compiler_path")
