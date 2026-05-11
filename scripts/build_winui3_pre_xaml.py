@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pre-XAML build entry: executes phases 1-4 (shared projection, MIDL, mdmerge, cppwinrt)."""
+"""Pre-XAML build entry: executes phases 2-4 (MIDL, mdmerge, cppwinrt)."""
 
 from __future__ import annotations
 
@@ -11,11 +11,8 @@ from pathlib import Path
 from build_winui3_common import (
     BuildError,
     clean_stale_files,
-    generate_shared_projection_headers,
     idl_to_winmd_path,
-    is_shared_projection_current,
     print_phase,
-    projection_fingerprint,
     remove_stale_projection_dir,
     resolve_inputs,
     resolve_layout,
@@ -24,7 +21,6 @@ from build_winui3_common import (
     same_path,
     set_verbose,
     unique_parent_dirs,
-    write_shared_projection_stamp,
 )
 from plat_info import (
     path_env_with_vc,
@@ -37,7 +33,7 @@ __all__ = ["main"]
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build WinUI 3 pre-XAML artifacts (shared projection, MIDL, mdmerge, cppwinrt)."
+        description="Build WinUI 3 pre-XAML artifacts (MIDL, mdmerge, cppwinrt)."
     )
     parser.add_argument(
         "--build-dir",
@@ -98,35 +94,8 @@ def main(argv: list[str] | None = None) -> int:
             f"Refs:    {len(inputs.platform_winmds)} platform, {len(inputs.appsdk_winmds)} WinAppSDK, 1 WebView2"
         )
 
-        # ── Phase 1: 生成共享投影头 ──
-        print_phase("[1/4] Generate shared platform, WebView2, and WinAppSDK headers")
-        shared_projection_fingerprint = projection_fingerprint(
-            build_script=Path(__file__).resolve(),
-            cppwinrt_exe=inputs.cppwinrt_exe,
-            platform_winmds=inputs.platform_winmds,
-            webview2_winmd=inputs.webview2_winmd,
-            appsdk_winmds=inputs.appsdk_winmds,
-            win2d_winmds=inputs.win2d_winmds,
-        )
-        if is_shared_projection_current(
-            layout.shared_projection_dir, shared_projection_fingerprint
-        ):
-            print("  shared projections are up to date")
-        else:
-            generate_shared_projection_headers(
-                cppwinrt_exe=inputs.cppwinrt_exe,
-                shared_projection_dir=layout.shared_projection_dir,
-                platform_winmds=inputs.platform_winmds,
-                webview2_winmd=inputs.webview2_winmd,
-                appsdk_winmds=inputs.appsdk_winmds,
-                win2d_winmds=inputs.win2d_winmds,
-            )
-            write_shared_projection_stamp(
-                layout.shared_projection_dir, shared_projection_fingerprint
-            )
-
         # ── Phase 2: MIDL 编译 ──
-        print_phase("[2/4] Compile IDL to WinMD")
+        print_phase("MIDL compilation")
 
         # 清理上次构建的陈旧 WinMD 文件
         clean_stale_files(layout.winmd_unmerged_dir, "**/*.winmd", required=True)
@@ -158,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         # ── Phase 3: 合并 WinMD ──
-        print_phase("[3/4] Merge WinMDs")
+        print_phase("Merge WinMDs")
         unmerged_winmds = sorted(layout.winmd_unmerged_dir.rglob("*.winmd"))
         if not unmerged_winmds:
             raise BuildError(
@@ -174,7 +143,7 @@ def main(argv: list[str] | None = None) -> int:
         require_file(layout.merged_winmd, "merged WinMD")
 
         # ── Phase 4: 生成项目 C++/WinRT 源码 ──
-        print_phase("[4/4] Generate project C++/WinRT sources")
+        print_phase("Generate project C++/WinRT sources")
 
         # 若共享投影目录与生成目录不同，清理本地投影以避免冲突
         if not same_path(layout.shared_projection_dir, layout.generated_dir):

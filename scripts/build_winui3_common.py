@@ -99,6 +99,25 @@ class ResolvedInputs:
     genxbf_dir: Path
 
 
+@dataclass(slots=True, frozen=True)
+class SharedProjectionInputs:
+    """共享 C++/WinRT 投影头生成所需的输入路径（不含 XAML/MIDL/MSVC 工具链）。
+
+    Attributes:
+        cppwinrt_exe: C++/WinRT 编译器可执行文件路径。
+        platform_winmds: Windows SDK 平台 API 契约 WinMD 文件列表。
+        webview2_winmd: WebView2 Core WinMD 文件路径。
+        appsdk_winmds: Windows App SDK 子包 WinMD 文件列表。
+        win2d_winmds: Win2D Canvas WinMD 文件列表。
+    """
+
+    cppwinrt_exe: Path
+    platform_winmds: list[Path]
+    webview2_winmd: Path
+    appsdk_winmds: list[Path]
+    win2d_winmds: list[Path]
+
+
 # 输出控制
 # 模块级详细输出开关：通过 --verbose / -v 参数设置
 _verbose: bool = False
@@ -700,4 +719,62 @@ def resolve_inputs(args: argparse.Namespace, layout: BuildLayout) -> ResolvedInp
         sdk_include_dir=sdk_include_dir,
         xaml_compiler=xaml_compiler,
         genxbf_dir=genxbf_dir,
+    )
+
+
+def resolve_shared_projection_inputs(project_dir: Path) -> SharedProjectionInputs:
+    """解析共享 C++/WinRT 投影头生成所需的输入路径。
+
+    仅解析 WinMD 相关输入（平台、WebView2、AppSDK、Win2D）和
+    cppwinrt.exe，不涉及 XAML 编译器、MIDL、mdmerge 或 MSVC 路径校验。
+
+    Args:
+        project_dir: 项目根目录绝对路径。
+
+    Returns:
+        包含所有已验证输入的 SharedProjectionInputs 实例。
+
+    Raises:
+        BuildError: 所需文件或目录不存在时。
+    """
+    # ── NuGet 包与工具路径解析 ──
+    config = NuGetConfig.from_packages_config(project_root=project_dir)
+
+    cppwinrt_exe = (
+        config.package_path("Microsoft.Windows.CppWinRT") / "bin" / "cppwinrt.exe"
+    )
+
+    # WinAppSDK 2.0.1 sub-packages (用于目录存在性校验)
+    foundation_pkg = config.package_path("Microsoft.WindowsAppSDK.Foundation")
+    winui_pkg = config.package_path("Microsoft.WindowsAppSDK.WinUI")
+    ixp_pkg = config.package_path("Microsoft.WindowsAppSDK.InteractiveExperiences")
+
+    # ── WinMD 收集 ──
+    webview2_winmds = winmd_webview2.collect(config)
+    if len(webview2_winmds) != 1:
+        raise BuildError(
+            f"expected exactly 1 WebView2 WinMD, got {len(webview2_winmds)}"
+        )
+    webview2_winmd = webview2_winmds[0]
+
+    win2d_winmds = winmd_win2d.collect(config)
+
+    # ── Windows SDK 解析 ──
+    winsdk_root = require_dir(WINDOWS_SDK_ROOT, "Windows SDK root")
+    winsdk_version, _ = platform_xml_path(winsdk_root, WINDOWS_SDK_VERSION)
+    platform_winmds = winmd_platform.collect(winsdk_root, winsdk_version)
+    appsdk_winmds = winmd_appsdk.collect(config)
+
+    # ── 完整性校验 ──
+    require_file(cppwinrt_exe, "cppwinrt.exe")
+    require_dir(foundation_pkg, "Foundation sub-package")
+    require_dir(winui_pkg, "WinUI sub-package")
+    require_dir(ixp_pkg, "InteractiveExperiences sub-package")
+
+    return SharedProjectionInputs(
+        cppwinrt_exe=cppwinrt_exe,
+        platform_winmds=platform_winmds,
+        webview2_winmd=webview2_winmd,
+        appsdk_winmds=appsdk_winmds,
+        win2d_winmds=win2d_winmds,
     )

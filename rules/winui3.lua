@@ -1,4 +1,4 @@
--- xmake rule for WinUI3 C++/WinRT build pipeline (dual-entry: pre-XAML + XAML/PRI)
+-- xmake rule for WinUI3 C++/WinRT build pipeline (stamp-based: shared-projection -> pre-XAML -> XAML/PRI)
 --
 -- This single rule wraps the entire WinUI3 application lifecycle:
 --   1. Target configuration  (kind, filename, output dir, policy)
@@ -197,8 +197,60 @@ rule("winui3.app")
             return args
         end
 
-        -- Stamp 1 -- Pre-XAML generation (shared projection, MIDL, mdmerge, cppwinrt)
-        -- Runs phases 1-4 via scripts/build_winui3_pre_xaml.py.
+        -- Stamp 0 -- Shared C++/WinRT projection header generation (Phase 0)
+        -- Generates projection headers for platform contracts, WebView2,
+        -- Windows App SDK, and Win2D -- independent of per-target IDL/XAML.
+        -- Writes to shared_projection_dir() -- shared across all targets.
+        --
+        -- IMPORTANT: Does NOT depend on .idl or .xaml files.
+        -- Changes to project IDL/XAML do NOT trigger shared projection regeneration.
+        --
+        -- NOTES:
+        --   1. scripts/winmd/*.py is a glob because new modules could be added.
+        --      Each module (platform, appsdk, webview2, win2d) has its own
+        --      collect() function that determines which WinMDs are inputs.
+        --   2. cppwinrt.exe and the actual WinMD files on disk are NOT tracked
+        --      by xmake's depend.on_changed. Their fingerprint is handled
+        --      internally by projection_fingerprint() inside the Python script.
+        --   3. packages.config is included because NuGet package version changes
+        --      alter which WinMDs are resolved, which changes projection output.
+        --   4. nuget_config.lua is included for consistency with existing stamps,
+        --      though the Python build_winui3_common.py uses nuget_config.py.
+        local shared_projection_stamp_file = path.join(
+            shared_gen, ".shared_projection_stamp.json"
+        )
+
+        depend.on_changed(function ()
+            local py   = "python"
+            local script = path.join(root_dir, "scripts/build_winui3_shared_projection.py")
+            local args   = {
+                path.translate(script),
+                "--project-dir", path.translate(root_dir),
+                "--shared-projection-dir", path.translate(shared_gen),
+            }
+            os.runv(py, args)
+        end, {
+            dependfile = shared_projection_stamp_file,
+            files = table.join(
+                -- WinMD discovery modules: determine which WinMD files are fed to cppwinrt.exe.
+                -- Adding a new winmd/*.py module = new WinMD source = different projection output.
+                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
+
+                -- Explicit file dependencies
+                {
+                    path.join(root_dir, "scripts", "build_winui3_shared_projection.py"),
+                    path.join(root_dir, "scripts", "build_winui3_common.py"),
+                    path.join(root_dir, "scripts", "nuget_config.py"),
+                    path.join(root_dir, "scripts", "nuget_config.lua"),
+                    path.join(root_dir, "scripts", "plat_info.py"),
+                    path.join(root_dir, "rules", "winui3.lua"),
+                    path.join(root_dir, "packages.config"),
+                }
+            ),
+        })
+
+        -- Stamp 1 -- Pre-XAML generation (MIDL, mdmerge, cppwinrt)
+        -- Runs phases 2-4 via scripts/build_winui3_pre_xaml.py.
         -- Includes generated XamlMetaDataProvider files.
         local idl_stamp_file = path.join(build_dir, "generated", ".idl_stamp")
 
@@ -221,6 +273,7 @@ rule("winui3.app")
                     path.join(root_dir, "scripts", "plat_info.py"),
                     path.join(root_dir, "rules", "winui3.lua"),
                     path.join(root_dir, "packages.config"),
+                    shared_projection_stamp_file,
                 }
             ),
         })
