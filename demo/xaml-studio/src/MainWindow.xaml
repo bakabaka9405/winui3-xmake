@@ -1,0 +1,61 @@
+<Window
+	x:Class="xamlstudio.MainWindow"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:local="using:xamlstudio"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	Title="XAML Studio"
+	d:DesignHeight="600"
+	d:DesignWidth="800"
+	mc:Ignorable="d">
+
+	<Grid x:Name="LayoutRoot">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition
+				x:Name="EditorColumn"
+				Width="2*"
+				MinWidth="240" />
+			<ColumnDefinition Width="6" />
+			<ColumnDefinition
+				x:Name="PreviewColumn"
+				Width="3*"
+				MinWidth="240" />
+		</Grid.ColumnDefinitions>
+
+		<!--  Editor pane  -->
+		<controls:WebView2 x:Name="EditorWebView" Grid.Column="0" />
+
+		<!--  Draggable splitter  -->
+		<local:PaneSplitter
+			Grid.Column="1"
+			ToolTipService.ToolTip="Drag to resize editor and preview panes" />
+
+		<!--  Preview pane  -->
+		<ScrollViewer
+			Grid.Column="2"
+			HorizontalScrollBarVisibility="Auto"
+			VerticalScrollBarVisibility="Auto">
+			<Border x:Name="PreviewHost" BorderThickness="0">
+				<TextBlock
+					x:Name="EmptyStateText"
+					HorizontalAlignment="Center"
+					VerticalAlignment="Center"
+					Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+					IsHitTestVisible="False"
+					Text="Enter XAML to preview"
+					Visibility="Visible" />
+			</Border>
+		</ScrollViewer>
+
+		<!--  Error overlay  -->
+		<controls:InfoBar
+			x:Name="ErrorInfoBar"
+			Grid.Column="2"
+			Margin="8"
+			VerticalAlignment="Bottom"
+			IsOpen="False"
+			Severity="Error" />
+	</Grid>
+</Window>

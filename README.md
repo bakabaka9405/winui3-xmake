@@ -13,6 +13,7 @@
 | `demo.explorer` | 文件资源管理器示例 | `demo/explorer/src/` |
 | `demo.paint` | 画布绘图示例，基于 Win2D `CanvasControl` 实现自由绘制 | `demo/paint/src/` |
 | `demo.webview` | WebView2 集成示例，在 WinUI 3 窗口中嵌入 Web 前端内容 | `demo/webview/src/` |
+| `demo.xaml-studio` | XAML 编辑器与实时预览，集成 Monaco (WebView2) 与 XamlReader.Load | `demo/xaml-studio/src/` |
 
 ## 技术栈
 
@@ -21,7 +22,7 @@
 - WinUI 3 / Windows App SDK 2.0.1
 - C++/WinRT 2.0
 - WIL
-- WebView2 1.0（`demo.webview` 嵌入式浏览器）
+- WebView2 1.0（`demo.webview` 嵌入式浏览器，`demo.xaml-studio` Monaco 编辑器）
 - Win2D 1.4（`demo.paint` 画布绘图）
 
 NuGet 依赖及精确版本见 `packages.config`。构建脚本会从 `%USERPROFILE%\.nuget\packages` 解析包路径；首次构建前请确认依赖已按 NuGet 全局包目录布局安装（小写包名 / 版本号）。
@@ -50,6 +51,7 @@ xmake build demo.camera
 xmake build demo.explorer
 xmake build demo.paint
 xmake build demo.webview
+xmake build demo.xaml-studio
 
 # 运行示例
 xmake run demo.hello
@@ -149,6 +151,8 @@ target("demo.<name>")
 3. 在源码中通过 `#include "pch.h"` 引用共享预编译头。
 
 随后可使用 `xmake build demo.<name>` 构建新目标。
+
+`demo.xaml-studio` 展示了通过 WebView2 加载 Monaco 编辑器、并使用 `XamlReader.Load` 在运行时解析 XAML 字符串以实现实时预览的技术路径。
 
 ## 命名空间约定
 

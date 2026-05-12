@@ -1,0 +1,8 @@
+namespace xamlstudio
+{
+    [default_interface]
+    runtimeclass PaneSplitter : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        PaneSplitter();
+    }
+}
