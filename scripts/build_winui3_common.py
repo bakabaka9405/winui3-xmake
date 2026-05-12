@@ -39,7 +39,7 @@ class BuildLayout:
 
     Attributes:
         project_dir: 项目根目录绝对路径。
-        build_dir: 构建输出根目录绝对路径。
+        build_dir: 构建自动生成中间文件根目录（来自 target:autogendir()）。
         generated_dir: 生成产物目录（build_dir/generated）。
         generated_sources_dir: 生成 C++ 源码目录（generated_dir/sources）。
         shared_projection_dir: 共享 C++/WinRT 投影头目录。
@@ -570,8 +570,9 @@ def resolve_layout(args: argparse.Namespace) -> BuildLayout:
     """根据解析后的命令行参数计算构建目录布局，并创建所有输出目录。
 
     Args:
-        args: 已解析的 argparse.Namespace，需包含 project_dir、build_dir、
-              namespace、src_dir、shared_projection_dir 等字段。
+        args: 已解析的 argparse.Namespace；build_dir 为 target:autogendir()
+              传入的构建自动生成根目录，需包含 project_dir、namespace、
+              src_dir、shared_projection_dir 等字段。
 
     Returns:
         包含所有标准化路径的 BuildLayout 实例。

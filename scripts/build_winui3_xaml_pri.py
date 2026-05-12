@@ -32,7 +32,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build WinUI 3 XAML and PRI artifacts (XAML Pass 1, Pass 2, makepri)."
     )
-    parser.add_argument("--build-dir", type=Path, required=True, help="Build output directory.")
+    parser.add_argument("--build-dir", type=Path, required=True, help="Build auto-generated intermediate directory (autogendir root, passed from xmake).")
     parser.add_argument("--project-dir", type=Path, default=Path("."), help="Project root directory.")
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Enable verbose output.")
     parser.add_argument("--namespace", type=str, default="xmake_demo", help="Root namespace.")

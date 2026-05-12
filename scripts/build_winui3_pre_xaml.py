@@ -39,7 +39,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--build-dir",
         type=Path,
         required=True,
-        help="Build output directory.",
+        help="Build auto-generated intermediate directory (autogendir root, passed from xmake).",
     )
     parser.add_argument(
         "--project-dir",

@@ -10,6 +10,9 @@
 | `demo.notepad` | 简易记事本，包含 `x:Bind` 双向绑定与 ViewModel | `demo/notepad/src/` |
 | `demo.gallery` | 控件展示应用，覆盖按钮、选择、文本、媒体、导航和菜单等场景 | `demo/gallery/src/` |
 | `demo.camera` | 摄像头预览示例，枚举视频采集设备并通过 `MediaCapture` 与 `MediaPlayerElement` 显示预览 | `demo/camera/src/` |
+| `demo.explorer` | 文件资源管理器示例 | `demo/explorer/src/` |
+| `demo.paint` | 画布绘图示例，基于 Win2D `CanvasControl` 实现自由绘制 | `demo/paint/src/` |
+| `demo.webview` | WebView2 集成示例，在 WinUI 3 窗口中嵌入 Web 前端内容 | `demo/webview/src/` |
 
 ## 技术栈
 
@@ -18,7 +21,8 @@
 - WinUI 3 / Windows App SDK 2.0.1
 - C++/WinRT 2.0
 - WIL
-- WebView2 WinMD（用于 C++/WinRT 投影输入）
+- WebView2 1.0（`demo.webview` 嵌入式浏览器）
+- Win2D 1.4（`demo.paint` 画布绘图）
 
 NuGet 依赖及精确版本见 `packages.config`。构建脚本会从 `%USERPROFILE%\.nuget\packages` 解析包路径；首次构建前请确认依赖已按 NuGet 全局包目录布局安装（小写包名 / 版本号）。
 
@@ -43,6 +47,9 @@ xmake build demo.hello
 xmake build demo.notepad
 xmake build demo.gallery
 xmake build demo.camera
+xmake build demo.explorer
+xmake build demo.paint
+xmake build demo.webview
 
 # 运行示例
 xmake run demo.hello

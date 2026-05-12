@@ -87,9 +87,11 @@ rule("winui3.app")
         target:set("values", "winui3.namespace", namespace)
         target:set("values", "winui3.src_dir", src_dir)
 
+        local autogen_dir = target:autogendir({root = true})
+
         --  Generated output include directories 
-        target:add("includedirs", path.join(target:targetdir(), "generated"))
-        target:add("includedirs", path.join(target:targetdir(), "generated", "sources"))
+        target:add("includedirs", path.join(autogen_dir, "generated"))
+        target:add("includedirs", path.join(autogen_dir, "generated", "sources"))
 
         -- 全权在 on_load 中生成 XamlMetaDataProvider.idl 和 .cpp，
         -- Python 管线不再负责生成，仅负责将已存在的 .idl 纳入 MIDL 编译。
@@ -105,7 +107,7 @@ rule("winui3.app")
         end
         do
             local namespace = target:values("winui3.namespace")
-            local gen_dir = path.join(target:targetdir(), "generated")
+            local gen_dir = path.join(autogen_dir, "generated")
             local xmp_idl = path.join(gen_dir, "XamlMetaDataProvider.idl")
             local xmp_file = path.join(gen_dir, "XamlMetaDataProvider.cpp")
             if not os.isdir(gen_dir) then
@@ -159,7 +161,8 @@ rule("winui3.app")
         local namespace = target:values("winui3.namespace")
         local src_dir   = target:values("winui3.src_dir")
         local root_dir  = target:values("winui3.root_dir") or os.projectdir()
-        local build_dir = target:targetdir()
+        -- build_dir uses autogendir as root path for all generated intermediate files
+        local build_dir = target:autogendir({root = true})
         local shared_gen = shared_projection_dir()
 
         -- Helper: build Python script arguments for pre-XAML entry (phases 1-4)
@@ -314,5 +317,5 @@ rule("winui3.app")
         local dll_dst = path.join(outdir, "Microsoft.WindowsAppRuntime.Bootstrap.dll")
         os.cp(dll_src, dll_dst)
 
-        os.cp(path.join(outdir, "generated", "resources.pri"), path.join(outdir, "resources.pri"))
+        os.cp(path.join(target:autogendir({root = true}), "generated", "resources.pri"), path.join(outdir, "resources.pri"))
     end)
