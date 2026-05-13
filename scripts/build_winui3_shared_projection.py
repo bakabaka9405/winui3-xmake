@@ -14,7 +14,6 @@ from pathlib import Path
 
 from build_winui3_common import (
     BuildError,
-    SharedProjectionInputs,
     absolute_path,
     generate_shared_projection_headers,
     is_shared_projection_current,
@@ -92,9 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             appsdk_winmds=inputs.appsdk_winmds,
             win2d_winmds=inputs.win2d_winmds,
         )
-        if is_shared_projection_current(shared_projection_dir, fingerprint):
-            print("  shared projections are up to date")
-        else:
+        if not is_shared_projection_current(shared_projection_dir, fingerprint):
             # 确保输出目录存在
             shared_projection_dir.mkdir(parents=True, exist_ok=True)
             generate_shared_projection_headers(

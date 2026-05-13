@@ -5,6 +5,7 @@
 
 
 set_project("winui3_demos")
+add_moduledirs("xmake/modules")
 includes("rules/dist.lua")
 add_rules("mode.debug", "mode.release", "mode.dist")
 set_version("1.0.0")
@@ -20,3 +21,5 @@ includes("rules/win2d.lua")
 
 -- Include all demo targets (each demo/<name>/xmake.lua defines its own target)
 includes("demo/*/xmake.lua")
+
+includes("xmake/plugins/*.lua")

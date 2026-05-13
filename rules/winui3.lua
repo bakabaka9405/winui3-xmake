@@ -1,13 +1,12 @@
 -- xmake rule for WinUI3 C++/WinRT build pipeline (stamp-based: shared-projection -> pre-XAML -> XAML/PRI)
 --
--- This single rule wraps the entire WinUI3 application lifecycle:
---   1. Target configuration  (kind, filename, output dir, policy)
---   2. Compiler flags        (C++20, WinRT, Unicode)
---   3. NuGet include paths   (auto-discovered from packages.config)
---   4. Link libraries        (Bootstrap, WindowsApp)
---   5. Code generation       (two-phase via Python: pre-XAML entry + XAML/PRI entry, sharing build_winui3_common.py)
---   6. Post-build            (copy Bootstrap DLL and resources.pri to output)
---   7. Run                   (execute from output directory)
+-- Lifecycle phases:
+--   1. on_load:    Structural identity (kind, filename, output dir, policy) + parameter validation
+--   2. on_config:  NuGet environment check (delegated to "nuget-check" plugin)
+--                  + NuGet-dependent includes, compiler flags, link libraries
+--   3. on_prepare: Code generation via Python (pre-XAML entry + XAML/PRI entry,
+--                  sharing build_winui3_common.py)
+--   4. after_build: Copy Bootstrap DLL and resources.pri to output
 
 -- ── 构建规则 ─────────────────────────────────────────────────
 
@@ -21,55 +20,17 @@ local function shared_projection_dir()
 end
 
 rule("winui3.app")
-    --  on_load: configure target identity, search paths, compiler & linker flags 
+    --  on_load: configure target structural identity (kind, filename, output dirs).
+    --  NuGet environment check and all NuGet-dependent configuration deferred to on_config.
     on_load(function (target)
-        --  Parse NuGet package paths from packages.config (cached)
-        if not _cached_nuget_paths then
-            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
-
-            --  ── 环境完整性检查 ─────────────────────────────────
-            --  验证 packages.config 中所有包的本地目录是否真实存在。
-            --  若缺失则自动执行 nuget restore 并重新验证。
-            local env_ok, missing = nuget_cfg.check_env()
-            if not env_ok then
-                cprint("${color.warning}NuGet packages missing from global cache: %s",
-                       table.concat(missing, ", "))
-                cprint("${color.warning}Running 'nuget restore' to install missing packages...")
-                os.run("nuget restore -PackagesDirectory \"%s\"",
-                        os.getenv("USERPROFILE") .. "\\.nuget\\packages")
-                --  清空 nuget_config 模块缓存，以强制重新解析
-                nuget_cfg.reset_cache()
-
-                --  恢复后再次验证
-                local env_ok2, missing2 = nuget_cfg.check_env()
-                if not env_ok2 then
-                    raise("NuGet packages still missing after 'nuget restore':\n  "
-                          .. table.concat(missing2, "\n  "))
-                end
-                cprint("${color.success}All NuGet packages verified.")
-            end
-
-            _cached_nuget_paths, _cached_nuget_package_ids = nuget_cfg.all_packages()
-        end
-        local paths = _cached_nuget_paths
-        local package_ids = _cached_nuget_package_ids or {}
-
-        local NUGET_FOUNDATION = paths["Microsoft.WindowsAppSDK.Foundation"]
-
-        --  Target identity 
+        --  Target identity —— 必须在加载阶段确定的属性
         target:set("kind", "binary")
         target:set("filename", target:name() .. ".exe")
-        target:set("targetdir", path.join("$(builddir)", "$(host)", "$(mode)", "$(arch)", target:name()))
+        target:set("targetdir", path.join(target:targetdir(), target:name()))
         target:set("rundir", target:targetdir())
         target:set("policy", "build.across_targets_in_parallel", false)
 
-        if not target:values("winui3.root_dir") then
-            target:set("values", "winui3.root_dir", os.projectdir())
-        end
-
-        --  ── 参数校验 ─────────────────────────────────────────────
-        --  用户必须通过 add_rules 选项表提供 namespace 和 src_dir；
-        --  不再支持 set_values 传统方式与后备默认值。
+        --  参数校验
         local namespace = target:extraconf("rules", "winui3.app", "namespace")
         if namespace == nil or type(namespace) ~= "string" then
             raise("winui3.app requires \"namespace\" parameter.\nUsage: add_rules(\"winui3.app\", {namespace = \"YourNamespace\", src_dir = path.join(os.scriptdir(), \"src\")})")
@@ -82,49 +43,30 @@ rule("winui3.app")
         if not os.isdir(src_dir) then
             raise("winui3.app: \"src_dir\" path does not exist: " .. src_dir .. "\nUsage: add_rules(\"winui3.app\", {namespace = \"YourNamespace\", src_dir = path.join(os.scriptdir(), \"src\")})")
         end
+    end)
 
-        --  校验通过后同步到 target values，供后续模块与 before_build 消费
-        target:set("values", "winui3.namespace", namespace)
-        target:set("values", "winui3.src_dir", src_dir)
+    --  on_config: NuGet environment verification + all NuGet-dependent configuration.
+    --  延迟至配置阶段执行：在 xmake f（或隐式配置）之后、构建之前运行。
+    --  通过 task.run("nuget-check") 将环境检查委托给独立的 plugin task，
+    --  确保逻辑可从 CLI 和构建流程中同时复用。
+    on_config(function (target)
+        --  Stage 1: NuGet environment verification（guarded — 所有目标仅执行一次）
+        if not _cached_nuget_paths then
+            local task = import("core.project.task")
+            task.run("nuget-check")
+            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+            _cached_nuget_paths, _cached_nuget_package_ids = nuget_cfg.all_packages()
+        end
+        local paths = _cached_nuget_paths
+        local package_ids = _cached_nuget_package_ids or {}
 
+        local namespace = target:extraconf("rules", "winui3.app", "namespace")
+        local src_dir   = target:extraconf("rules", "winui3.app", "src_dir")
         local autogen_dir = target:autogendir({root = true})
 
-        --  Generated output include directories 
+        --  Stage 2: Include directories —— 生成输出、共享投影、NuGet 包、源码目录
         target:add("includedirs", path.join(autogen_dir, "generated"))
         target:add("includedirs", path.join(autogen_dir, "generated", "sources"))
-
-        -- 全权在 on_load 中生成 XamlMetaDataProvider.idl 和 .cpp，
-        -- Python 管线不再负责生成，仅负责将已存在的 .idl 纳入 MIDL 编译。
-        local function write_file_if_changed(filepath, content)
-            if os.isfile(filepath) then
-                local existing = io.readfile(filepath)
-                if existing == content then
-                    return false
-                end
-            end
-            io.writefile(filepath, content)
-            return true
-        end
-        do
-            local namespace = target:values("winui3.namespace")
-            local gen_dir = path.join(autogen_dir, "generated")
-            local xmp_idl = path.join(gen_dir, "XamlMetaDataProvider.idl")
-            local xmp_file = path.join(gen_dir, "XamlMetaDataProvider.cpp")
-            if not os.isdir(gen_dir) then
-                os.mkdir(gen_dir)
-            end
-            -- 生成 .idl（使用正确的命名空间）
-            local idl_content = string.format(
-                "namespace %s\n{\n    runtimeclass XamlMetaDataProvider : [default] Microsoft.UI.Xaml.Markup.IXamlMetadataProvider\n    {\n        XamlMetaDataProvider();\n    }\n}\n",
-                namespace
-            )
-            write_file_if_changed(xmp_idl, idl_content)
-            -- 生成 .cpp 存根（包含 cppwinrt 生成的实现文件）
-            write_file_if_changed(xmp_file, '#include "pch.h"\n#include "XamlMetaDataProvider.h"\n#include "XamlMetaDataProvider.g.cpp"\n')
-            -- 注册 .cpp 为编译源文件
-            target:add("files", xmp_file)
-        end
-
         target:add("includedirs", shared_projection_dir())
 
         --  NuGet include directories: add every package include/ folder that exists.
@@ -135,122 +77,41 @@ rule("winui3.app")
             end
         end
 
-        local src_dir = target:values("winui3.src_dir")
-        if src_dir then
-            target:add("includedirs", src_dir)
-        end
+        target:add("includedirs", src_dir)
 
-        local namespace = target:values("winui3.namespace")
-
-        --  Compiler flags 
+        --  Stage 3: Compiler flags
         target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8",
                     "/DNOMINMAX", "/DWIN32_LEAN_AND_MEAN", "/DUNICODE", "/D_UNICODE",
                     "/DDISABLE_XAML_GENERATED_MAIN", "/DWINUI3_APP_NAMESPACE=" .. namespace)
 
-        --  Link libraries 
+        --  Stage 4: Link libraries
+        local NUGET_FOUNDATION = paths["Microsoft.WindowsAppSDK.Foundation"]
         target:add("links", path.translate(NUGET_FOUNDATION .. "/lib/native/x64/Microsoft.WindowsAppRuntime.Bootstrap.lib"))
         target:add("links", "windowsapp")
         target:add("links", "user32")
         target:add("ldflags", "/SUBSYSTEM:WINDOWS")
     end)
 
-    --  before_build: two-entry code generation via pre-XAML and XAML/PRI Python scripts
-    before_build(function (target)
+    --  on_prepare: two-entry code generation via pre-XAML and XAML/PRI Python scripts
+    on_prepare(function (target)
+        -- NOTE: xmake gen invokes generation helpers directly without
+        -- compile/link. Stamps (.idl_stamp, .xaml_stamp) in this on_prepare
+        -- are ONLY updated by xmake build's depend.on_changed mechanism.
         import("core.project.depend")
+        local task = import("core.project.task")
+        task.run("gen-xmdp", {target = target:name()})
 
-        local namespace = target:values("winui3.namespace")
-        local src_dir   = target:values("winui3.src_dir")
-        local root_dir  = target:values("winui3.root_dir") or os.projectdir()
+        local namespace = target:extraconf("rules", "winui3.app", "namespace")
+        local src_dir   = target:extraconf("rules", "winui3.app", "src_dir")
+        local root_dir  = os.projectdir()
         -- build_dir uses autogendir as root path for all generated intermediate files
         local build_dir = target:autogendir({root = true})
         local shared_gen = shared_projection_dir()
 
-        -- Helper: build Python script arguments for pre-XAML entry (phases 1-4)
-        local function py_args_pre()
-            local script = path.join(root_dir, "scripts/build_winui3_pre_xaml.py")
-            local args   = {
-                path.translate(script),
-                "--build-dir", path.translate(build_dir),
-                "--project-dir", path.translate(root_dir),
-                "--namespace", namespace,
-                "--src-dir", path.translate(src_dir),
-                "--shared-projection-dir", path.translate(shared_gen),
-            }
-            return args
-        end
-
-        -- Helper: build Python script arguments for XAML/PRI entry (phases 6-8)
-        local function py_args_xaml()
-            local script = path.join(root_dir, "scripts/build_winui3_xaml_pri.py")
-            local args   = {
-                path.translate(script),
-                "--build-dir", path.translate(build_dir),
-                "--project-dir", path.translate(root_dir),
-                "--namespace", namespace,
-                "--src-dir", path.translate(src_dir),
-                "--shared-projection-dir", path.translate(shared_gen),
-            }
-
-            local xaml_compiler_path = target:values("winui3.xaml_compiler_path")
-            if xaml_compiler_path then
-                table.insert(args, "--xaml-compiler-path")
-                table.insert(args, path.translate(xaml_compiler_path))
-            end
-
-            return args
-        end
-
         -- Stamp 0 -- Shared C++/WinRT projection header generation (Phase 0)
-        -- Generates projection headers for platform contracts, WebView2,
-        -- Windows App SDK, and Win2D -- independent of per-target IDL/XAML.
-        -- Writes to shared_projection_dir() -- shared across all targets.
-        --
-        -- IMPORTANT: Does NOT depend on .idl or .xaml files.
-        -- Changes to project IDL/XAML do NOT trigger shared projection regeneration.
-        --
-        -- NOTES:
-        --   1. scripts/winmd/*.py is a glob because new modules could be added.
-        --      Each module (platform, appsdk, webview2, win2d) has its own
-        --      collect() function that determines which WinMDs are inputs.
-        --   2. cppwinrt.exe and the actual WinMD files on disk are NOT tracked
-        --      by xmake's depend.on_changed. Their fingerprint is handled
-        --      internally by projection_fingerprint() inside the Python script.
-        --   3. packages.config is included because NuGet package version changes
-        --      alter which WinMDs are resolved, which changes projection output.
-        --   4. nuget_config.lua is included for consistency with existing stamps,
-        --      though the Python build_winui3_common.py uses nuget_config.py.
-        local shared_projection_stamp_file = path.join(
-            shared_gen, ".shared_projection_stamp.json"
-        )
-
-        depend.on_changed(function ()
-            local py   = "python"
-            local script = path.join(root_dir, "scripts/build_winui3_shared_projection.py")
-            local args   = {
-                path.translate(script),
-                "--project-dir", path.translate(root_dir),
-                "--shared-projection-dir", path.translate(shared_gen),
-            }
-            os.runv(py, args)
-        end, {
-            dependfile = shared_projection_stamp_file,
-            files = table.join(
-                -- WinMD discovery modules: determine which WinMD files are fed to cppwinrt.exe.
-                -- Adding a new winmd/*.py module = new WinMD source = different projection output.
-                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
-
-                -- Explicit file dependencies
-                {
-                    path.join(root_dir, "scripts", "build_winui3_shared_projection.py"),
-                    path.join(root_dir, "scripts", "build_winui3_common.py"),
-                    path.join(root_dir, "scripts", "nuget_config.py"),
-                    path.join(root_dir, "scripts", "nuget_config.lua"),
-                    path.join(root_dir, "scripts", "plat_info.py"),
-                    path.join(root_dir, "rules", "winui3.lua"),
-                    path.join(root_dir, "packages.config"),
-                }
-            ),
-        })
+        -- 增量保护由 Python 端的 projection_fingerprint() 负责；Lua 侧仅保留
+        -- stamp 文件路径供 Stamp 1 的级联依赖使用。
+        task.run("gen-winrt-shared")
 
         -- Stamp 1 -- Pre-XAML generation (MIDL, mdmerge, cppwinrt)
         -- Runs phases 2-4 via scripts/build_winui3_pre_xaml.py.
@@ -259,7 +120,15 @@ rule("winui3.app")
 
         depend.on_changed(function ()
             local py   = "python"
-            local args = py_args_pre()
+            local script = path.join(root_dir, "scripts/build_winui3_pre_xaml.py")
+            local args = {
+                path.translate(script),
+                "--build-dir",             path.translate(build_dir),
+                "--project-dir",           path.translate(root_dir),
+                "--namespace",             namespace,
+                "--src-dir",               path.translate(src_dir),
+                "--shared-projection-dir", path.translate(shared_gen),
+            }
             os.runv(py, args)
         end, {
             dependfile = idl_stamp_file,
@@ -276,7 +145,7 @@ rule("winui3.app")
                     path.join(root_dir, "scripts", "plat_info.py"),
                     path.join(root_dir, "rules", "winui3.lua"),
                     path.join(root_dir, "packages.config"),
-                    shared_projection_stamp_file,
+                    path.join(shared_gen, ".shared_projection_stamp.json"),
                 }
             ),
         })
@@ -284,9 +153,24 @@ rule("winui3.app")
         -- Stamp 2 -- XAML compilation and resource indexing
         -- Runs phases 6-8 via scripts/build_winui3_xaml_pri.py.
         -- DEPENDS on Stamp 1's dependfile to ensure IDL changes cascade to XAML.
+        local xaml_compiler_path = target:values("winui3.xaml_compiler_path")
         depend.on_changed(function ()
             local py   = "python"
-            local args = py_args_xaml()
+            local script = path.join(root_dir, "scripts/build_winui3_xaml_pri.py")
+            local args = {
+                path.translate(script),
+                "--build-dir",             path.translate(build_dir),
+                "--project-dir",           path.translate(root_dir),
+                "--namespace",             namespace,
+                "--src-dir",               path.translate(src_dir),
+                "--shared-projection-dir", path.translate(shared_gen),
+            }
+
+            -- xaml_compiler_path 为可选参数；仅在提供时追加
+            if xaml_compiler_path then
+                table.insert(args, "--xaml-compiler-path")
+                table.insert(args, path.translate(xaml_compiler_path))
+            end
             os.runv(py, args)
         end, {
             dependfile = path.join(build_dir, "generated", ".xaml_stamp"),
@@ -303,8 +187,9 @@ rule("winui3.app")
         })
     end)
 
-    --  after_build: copy runtime files to output
-    --  Depends on _cached_nuget_paths populated by on_load (runs first in target lifecycle).
+    --  after_build: copy runtime files to output.
+    --  nuget_config.lua cache populated by on_config (runs before build); after_build
+    --  re-imports nuget_config independently to resolve the Foundation package path.
     after_build(function (target)
         local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
         local foundation = nuget_cfg.package_path("Microsoft.WindowsAppSDK.Foundation")

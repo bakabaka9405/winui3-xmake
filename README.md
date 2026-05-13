@@ -43,6 +43,9 @@ NuGet 依赖及精确版本见 `packages.config`。构建脚本会从 `%USERPROF
 # 可选：查看 NuGet 全局包目录；构建脚本默认读取 %USERPROFILE%\.nuget\packages
 nuget locals global-packages -list
 
+# 可选：检查 NuGet 包环境完整性（缺失时自动执行 nuget restore）
+xmake nuget-check
+
 # 构建指定示例
 xmake build demo.hello
 xmake build demo.notepad
@@ -72,6 +75,9 @@ winui3-xmake/
 ├── demo/               示例应用；每个子目录定义一个 xmake 目标
 ├── rules/              xmake 自定义规则
 ├── scripts/            WinUI 3 代码生成与平台探测脚本
+├── xmake/
+│   ├── plugins/        xmake 插件（nuget-check、gen-winrt-shared、gen-xmdp）
+│   └── modules/        共享 Lua 模块（如 vcprint 工具函数）
 ├── packages.config     NuGet 依赖清单
 ├── xmake.lua           根项目配置
 └── build/              构建输出目录（未纳入版本控制）
@@ -80,9 +86,13 @@ winui3-xmake/
 关键文件：
 
 - `common/main.cpp`：提供手写 `wWinMain`，初始化 Windows App SDK Bootstrap，并集中注册应用级 `UnhandledException` 处理器。
-- `rules/winui3.lua`：定义 `winui3.app` 规则，配置编译、链接、代码生成和运行时文件复制。
+- `rules/winui3.lua`：定义 `winui3.app` 规则，按生命周期阶段配置目标（`on_load`：结构身份与参数校验；`on_config`：NuGet 依赖解析与编译/链接标志；`on_prepare`：代码生成流水线；`after_build`：运行时文件部署）。
+
 - `rules/demo.lua`：定义 `demo.common` 规则，为示例目标挂载共享入口点、预编译头和清单。
 - `rules/dist.lua`：定义 `mode.dist` 分发构建模式，配置优化、符号剥离和静态运行库。
+- `xmake/plugins/nuget_check.lua`：`xmake nuget-check` 插件，验证 NuGet 包环境并在缺失时自动 restore。
+- `xmake/plugins/gen_winrt_shared.lua`：`xmake gen-winrt-shared` 插件，生成共享 C++/WinRT 投影头（阶段 0）。
+- `xmake/plugins/gen_xmdp.lua`：`xmake gen-xmdp [target]` 插件，为目标生成 `XamlMetaDataProvider.idl` 与 `.cpp`。
 - `scripts/build_winui3_common.py`：承载共享上下文、路径/工具解析与公共辅助函数，供各构建入口导入。
 - `scripts/build_winui3_shared_projection.py`：共享投影生成入口，从平台 WinMD、WebView2、Windows App SDK 与 Win2D 生成共享 C++/WinRT 投影头（阶段 0）。
 - `scripts/build_winui3_pre_xaml.py`：前置生成入口，执行 MIDL 编译、WinMD 合并与 C++/WinRT 源码投影（阶段 2-4）。
@@ -91,7 +101,16 @@ winui3-xmake/
 
 ## 构建流水线
 
-`winui3.app` 通过 Python 脚本执行代码生成，Lua/xmake 仅负责任务编排与摘要文件（stamp）驱动的增量控制。
+`winui3.app` 规则按 xmake 生命周期分阶段执行：
+
+1. `on_load`：确定目标结构身份（`kind`、`filename`、输出目录）并校验 `namespace` 与 `src_dir` 必需参数。
+2. `on_config`：通过 `nuget-check` 任务验证 NuGet 包环境（缺失时自动 restore），随后配置 NuGet 依赖的 include 路径、编译器标志和链接库。
+3. `on_prepare`：执行完整的代码生成流水线（stamp 驱动的增量控制），依次为：
+   - 阶段 0 — 共享 C++/WinRT 投影头生成（通过 `gen-winrt-shared` 任务委托）
+   - XamlMetaDataProvider 自动生成（通过 `gen-xmdp` 任务委托）
+   - 阶段 2-4 — 前置生成（MIDL 编译、WinMD 合并、C++/WinRT 源码投影）
+   - 阶段 6-8 — XAML/PRI 生成（XAML Pass 1 / Pass 2 编译、makepri 资源索引）
+4. `after_build`：将 `Microsoft.WindowsAppRuntime.Bootstrap.dll` 和 `resources.pri` 复制到输出目录。
 
 `build_winui3_shared_projection.py` 负责共享投影生成（阶段 0）：从平台 WinMD、WebView2、Windows App SDK 与 Win2D 生成共享 C++/WinRT 投影头。该阶段独立运行，不依赖项目 IDL 或 MIDL 工具。
 

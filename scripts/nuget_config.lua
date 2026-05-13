@@ -96,6 +96,6 @@ end
 return {
     all_packages = all_packages,
     package_path = package_path,
-    check_env     = check_env,
-    reset_cache   = reset_cache,
+    check_env    = check_env,
+    reset_cache  = reset_cache,
 }
