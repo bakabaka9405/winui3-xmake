@@ -153,7 +153,7 @@ rule("winui3.app")
         -- Stamp 2 -- XAML compilation and resource indexing
         -- Runs phases 6-8 via scripts/build_winui3_xaml_pri.py.
         -- DEPENDS on Stamp 1's dependfile to ensure IDL changes cascade to XAML.
-        local xaml_compiler_path = target:values("winui3.xaml_compiler_path")
+        local xaml_compiler_path = get_config("winui3.xaml_compiler_path")
         depend.on_changed(function ()
             local py   = "python"
             local script = path.join(root_dir, "scripts/build_winui3_xaml_pri.py")
