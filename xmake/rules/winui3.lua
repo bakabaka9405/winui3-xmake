@@ -54,7 +54,7 @@ rule("winui3.app")
         if not _cached_nuget_paths then
             local task = import("core.project.task")
             task.run("nuget-check")
-            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+            local nuget_cfg = import("xmake.scripts.nuget_config", {rootdir = os.projectdir()})
             _cached_nuget_paths, _cached_nuget_package_ids = nuget_cfg.all_packages()
         end
         local paths = _cached_nuget_paths
@@ -120,7 +120,7 @@ rule("winui3.app")
 
         depend.on_changed(function ()
             local py   = "python"
-            local script = path.join(root_dir, "scripts/build_winui3_pre_xaml.py")
+            local script = path.join(root_dir, "xmake/scripts/build_winui3_pre_xaml.py")
             local args = {
                 path.translate(script),
                 "--build-dir",             path.translate(build_dir),
@@ -135,15 +135,15 @@ rule("winui3.app")
             files = table.join(
                 os.files(path.join(src_dir, "**.idl")),
                 os.files(path.join(build_dir, "generated", "XamlMetaDataProvider.idl")),
-                os.files(path.join(root_dir, "scripts", "winmd", "**.py")),
+                os.files(path.join(root_dir, "xmake/scripts", "winmd", "**.py")),
                 {
                     path.join(build_dir, "generated", "XamlMetaDataProvider.cpp"),
-                    path.join(root_dir, "scripts", "build_winui3_common.py"),
-                    path.join(root_dir, "scripts", "build_winui3_pre_xaml.py"),
-                    path.join(root_dir, "scripts", "nuget_config.py"),
-                    path.join(root_dir, "scripts", "nuget_config.lua"),
-                    path.join(root_dir, "scripts", "plat_info.py"),
-                    path.join(root_dir, "rules", "winui3.lua"),
+                    path.join(root_dir, "xmake/scripts", "build_winui3_common.py"),
+                    path.join(root_dir, "xmake/scripts", "build_winui3_pre_xaml.py"),
+                    path.join(root_dir, "xmake/scripts", "nuget_config.py"),
+                    path.join(root_dir, "xmake/scripts", "nuget_config.lua"),
+                    path.join(root_dir, "xmake/scripts", "plat_info.py"),
+                    path.join(root_dir, "xmake/rules", "winui3.lua"),
                     path.join(root_dir, "packages.config"),
                     path.join(shared_gen, ".shared_projection_stamp.json"),
                 }
@@ -156,7 +156,7 @@ rule("winui3.app")
         local xaml_compiler_path = get_config("winui3.xaml_compiler_path")
         depend.on_changed(function ()
             local py   = "python"
-            local script = path.join(root_dir, "scripts/build_winui3_xaml_pri.py")
+            local script = path.join(root_dir, "xmake/scripts/build_winui3_xaml_pri.py")
             local args = {
                 path.translate(script),
                 "--build-dir",             path.translate(build_dir),
@@ -178,9 +178,9 @@ rule("winui3.app")
                 os.files(path.join(src_dir, "**.xaml")),
                 os.files(path.join(src_dir, "**.xaml.h")),
                 {
-                    path.join(root_dir, "scripts", "build_winui3_common.py"),
-                    path.join(root_dir, "scripts", "build_winui3_xaml_pri.py"),
-                    path.join(root_dir, "rules", "winui3.lua"),
+                    path.join(root_dir, "xmake/scripts", "build_winui3_common.py"),
+                    path.join(root_dir, "xmake/scripts", "build_winui3_xaml_pri.py"),
+                    path.join(root_dir, "xmake/rules", "winui3.lua"),
                     idl_stamp_file,  -- cascade IDL changes to XAML
                 }
             ),
@@ -191,7 +191,7 @@ rule("winui3.app")
     --  nuget_config.lua cache populated by on_config (runs before build); after_build
     --  re-imports nuget_config independently to resolve the Foundation package path.
     after_build(function (target)
-        local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+        local nuget_cfg = import("xmake.scripts.nuget_config", {rootdir = os.projectdir()})
         local foundation = nuget_cfg.package_path("Microsoft.WindowsAppSDK.Foundation")
         if not foundation then
             raise("Microsoft.WindowsAppSDK.Foundation NuGet package not found in packages.config")

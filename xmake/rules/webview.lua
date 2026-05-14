@@ -14,7 +14,7 @@ rule("webview")
     after_build(function (target)
         -- Resolve WebView2 NuGet package path from packages.config (cached at module level)
         if not _cached_webview2_path then
-            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+            local nuget_cfg = import("xmake.scripts.nuget_config", {rootdir = os.projectdir()})
             _cached_webview2_path = nuget_cfg.package_path("Microsoft.Web.WebView2")
         end
 

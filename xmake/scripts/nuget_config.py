@@ -90,7 +90,7 @@ class NuGetConfig:
         """
         # 解析项目根目录
         if project_root is None:
-            project_root = Path(__file__).resolve().parent.parent
+            project_root = Path(__file__).resolve().parent.parent.parent
 
         config_path = project_root / "packages.config"
         if not config_path.is_file():

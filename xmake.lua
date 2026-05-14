@@ -6,7 +6,7 @@
 
 set_project("winui3_demos")
 add_moduledirs("xmake/modules")
-includes("rules/dist.lua")
+includes("xmake/rules/*.lua")
 add_rules("mode.debug", "mode.release", "mode.dist")
 set_version("1.0.0")
 set_languages("cxx20")
@@ -14,10 +14,6 @@ set_config("winui3.xaml_compiler_path", "C:\\Workspace\\Project\\xaml-compiler\\
 
 -- Include custom rules (winui3.app handles all WinUI3 build pipeline;
 -- demo.common handles project-specific shared config like common/ directory)
-includes("rules/winui3.lua")
-includes("rules/demo.lua")
-includes("rules/webview.lua")
-includes("rules/win2d.lua")
 
 -- Include all demo targets (each demo/<name>/xmake.lua defines its own target)
 includes("demo/*/xmake.lua")

@@ -16,7 +16,7 @@ task("nuget-check")
     on_run(function ()
         -- ── 依赖导入 ─────────────────────────────────────────────
         -- 导入必须在回调内部进行，以适配 xmake 沙箱隔离机制。
-        local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+        local nuget_cfg = import("xmake.scripts.nuget_config", {rootdir = os.projectdir()})
         local option = import("core.base.option")
         
         local utils = import("utils")

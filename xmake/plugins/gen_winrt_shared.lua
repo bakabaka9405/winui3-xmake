@@ -14,7 +14,7 @@ task("gen-winrt-shared")
         local utils = import("utils")
 
         local shared_gen = path.join(os.projectdir(), "build", ".gens", "shared", "generated")
-        local script = path.join(os.projectdir(), "scripts/build_winui3_shared_projection.py")
+        local script = path.join(os.projectdir(), "xmake/scripts/build_winui3_shared_projection.py")
         local args = {
             path.translate(script),
             "--project-dir",          path.translate(os.projectdir()),

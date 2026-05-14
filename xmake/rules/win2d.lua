@@ -14,7 +14,7 @@ rule("win2d")
     after_build(function (target)
         -- Resolve Win2D NuGet package path from packages.config (cached at module level)
         if not _cached_win2d_path then
-            local nuget_cfg = import("scripts.nuget_config", {rootdir = os.projectdir()})
+            local nuget_cfg = import("xmake.scripts.nuget_config", {rootdir = os.projectdir()})
             _cached_win2d_path = nuget_cfg.package_path("Microsoft.Graphics.Win2D")
         end
 
