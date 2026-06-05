@@ -1,4 +1,6 @@
 target("demo.explorer")
-    add_rules("winui3.app", {namespace = "explorer", src_dir = path.join(os.scriptdir(), "src")})
+    add_rules("winui3.app")
+    set_values("winui3.namespace", "explorer")
     add_rules("demo.common")
-    add_files(path.join(os.scriptdir(), "src", "**.cpp"))
+    add_includedirs("src")
+    add_files("src/**.cpp", "src/**.idl", "src/**.xaml")

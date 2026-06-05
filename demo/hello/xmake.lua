@@ -1,5 +1,7 @@
 -- Hello World WinUI3 demo
 target("demo.hello")
-    add_rules("winui3.app", {namespace = "hello", src_dir = path.join(os.scriptdir(), "src")})
+    add_rules("winui3.app")
+    set_values("winui3.namespace", "hello")
     add_rules("demo.common")
-    add_files(path.join(os.scriptdir(), "src", "**.cpp"))
+    add_includedirs("src")
+    add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
