@@ -1,0 +1,6 @@
+target("demo.utils")
+    set_kind("static")
+    set_default(false)
+    add_includedirs("include", {public = true})
+    add_headerfiles("include/(demo/utils/*.h)")
+    add_files("src/**.cpp")
