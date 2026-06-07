@@ -1,0 +1,227 @@
+<UserControl
+    x:Class="kanban.BoardColumn"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:kanban"
+    Width="280"
+    MinWidth="240"
+    Margin="0,8,0,0"
+    VerticalAlignment="Top"
+    Loaded="OnLoaded">
+    <Border
+        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="8">
+        <Grid Padding="0" RowDefinitions="Auto,Auto,Auto">
+            <!--  Column header  -->
+            <Border
+                x:Name="ColumnHeader"
+                Grid.Row="0"
+                Padding="12,10,8,8"
+                Background="Transparent"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                    <Grid Grid.Column="0">
+                        <TextBlock
+                            x:Name="TitleText"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            DoubleTapped="OnColumnTitleDoubleTapped"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBox
+                            x:Name="TitleEditor"
+                            MinHeight="28"
+                            Padding="4,0"
+                            VerticalAlignment="Center"
+                             FontSize="15"
+                             FontWeight="SemiBold"
+                             KeyDown="OnColumnTitleKeyDown"
+                             LosingFocus="OnEditorLosingFocus"
+                             LostFocus="OnColumnTitleLostFocus"
+                             Visibility="Collapsed" />
+                    </Grid>
+                    <Border
+                        x:Name="CountBadge"
+                        Grid.Column="1"
+                        Height="20"
+                        MinWidth="20"
+                        Margin="4,0"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource ControlFillColorDefaultBrush}"
+                        CornerRadius="10">
+                        <TextBlock
+                            x:Name="CountText"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="11"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Border>
+                    <ToggleButton
+                        x:Name="CollapseButton"
+                        Grid.Column="2"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        Background="Transparent"
+                        Checked="OnToggleCollapsed"
+                        Content="&#xE70E;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="12"
+                        ToolTipService.ToolTip="折叠/展开"
+                        Unchecked="OnToggleCollapsed" />
+                    <Button
+                        x:Name="DeleteButton"
+                        Grid.Column="3"
+                        Width="28"
+                        Height="28"
+                        Padding="0"
+                        Background="Transparent"
+                        Click="OnDeleteColumn"
+                        Content="&#xE74D;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="12" />
+                </Grid>
+            </Border>
+
+            <!--  Card list  -->
+            <ScrollViewer
+                x:Name="CardScrollViewer"
+                Grid.Row="1"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                VerticalScrollMode="Enabled"
+                ZoomMode="Disabled">
+                <Grid
+                    x:Name="CardWheelSurface"
+                    Background="Transparent"
+                    PointerWheelChanged="OnCardPointerWheelChanged">
+                    <ListView
+                        x:Name="CardListView"
+                        Padding="4"
+                        AllowDrop="True"
+                        BorderThickness="0"
+                        CanDragItems="True"
+                        CanReorderItems="True"
+                        DragItemsCompleted="OnDragItemsCompleted"
+                        DragItemsStarting="OnDragItemsStarting"
+                        DragOver="OnListDragOver"
+                        Drop="OnListDrop"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.HorizontalScrollMode="Disabled"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollMode="Disabled"
+                        SelectionMode="Single">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                        <ListView.ItemContainerTransitions>
+                            <TransitionCollection>
+                                <AddDeleteThemeTransition />
+                                <ContentThemeTransition />
+                                <ReorderThemeTransition />
+                                <EntranceThemeTransition IsStaggeringEnabled="False" />
+                            </TransitionCollection>
+                        </ListView.ItemContainerTransitions>
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,4" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:CardData">
+                                <Border
+                                    Padding="10"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                            <Grid Grid.Column="0">
+                                                <TextBlock
+                                                    x:Name="CardTitleText"
+                                                    DoubleTapped="OnCardTitleDoubleTapped"
+                                                    FontSize="13"
+                                                    FontWeight="SemiBold"
+                                                    Text="{x:Bind Title}"
+                                                    TextWrapping="WrapWholeWords" />
+                                                <TextBox
+                                                    x:Name="CardTitleEditor"
+                                                    MinHeight="28"
+                                                    Padding="4,0"
+                                                     FontSize="13"
+                                                     FontWeight="SemiBold"
+                                                     KeyDown="OnCardTitleKeyDown"
+                                                     LosingFocus="OnEditorLosingFocus"
+                                                     LostFocus="OnCardTitleLostFocus"
+                                                     Visibility="Collapsed" />
+                                            </Grid>
+                                            <Button
+                                                Grid.Column="1"
+                                                Width="20"
+                                                Height="20"
+                                                Padding="0"
+                                                VerticalAlignment="Top"
+                                                Background="Transparent"
+                                                Click="OnDeleteCard"
+                                                Content="&#xE74D;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="10"
+                                                Tag="{x:Bind Id}" />
+                                        </Grid>
+                                        <Grid
+                                            Grid.Row="1"
+                                            MinHeight="18"
+                                            Margin="0,4,0,0"
+                                            Background="Transparent"
+                                            DoubleTapped="OnCardDescriptionDoubleTapped">
+                                            <TextBlock
+                                                x:Name="CardDescriptionText"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{x:Bind Description}"
+                                                TextWrapping="WrapWholeWords" />
+                                            <TextBox
+                                                x:Name="CardDescriptionEditor"
+                                                MinHeight="64"
+                                                 AcceptsReturn="True"
+                                                 FontSize="12"
+                                                 LosingFocus="OnEditorLosingFocus"
+                                                 LostFocus="OnCardDescriptionLostFocus"
+                                                 TextWrapping="Wrap"
+                                                 Visibility="Collapsed" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </ScrollViewer>
+
+            <!--  Add card button  -->
+            <Button
+                x:Name="AddCardButton"
+                Grid.Row="2"
+                Height="36"
+                Margin="8,4,8,8"
+                Click="OnAddCard"
+                Content="+ Add Card"
+                CornerRadius="6"
+                FontSize="13" />
+        </Grid>
+    </Border>
+</UserControl>

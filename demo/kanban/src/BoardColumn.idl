@@ -1,0 +1,12 @@
+import "BoardViewModel.idl";
+
+namespace kanban
+{
+    [default_interface]
+    runtimeclass BoardColumn : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        BoardColumn();
+        ColumnData ColumnData { get; set; };
+        BoardViewModel ViewModel { get; set; };
+    }
+}

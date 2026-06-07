@@ -1,0 +1,33 @@
+namespace kanban
+{
+    [default_interface]
+    runtimeclass CardData
+    {
+        CardData(String id, String title, String description);
+        String Id { get; };
+        String Title;
+        String Description;
+    }
+
+    [default_interface]
+    runtimeclass ColumnData
+    {
+        ColumnData(String id, String title);
+        String Id { get; };
+        String Title;
+        Windows.Foundation.Collections.IObservableVector<CardData> Cards { get; };
+    }
+
+    [default_interface]
+    runtimeclass BoardViewModel
+    {
+        BoardViewModel();
+        Windows.Foundation.Collections.IObservableVector<ColumnData> Columns { get; };
+        void AddColumn(String title);
+        void RemoveColumn(String id);
+        void AddCard(String columnId);
+        void RemoveCard(String columnId, String cardId);
+        void MoveCardTo(String cardId, String sourceColumnId, String targetColumnId, Int32 insertIndex);
+        void Save();
+    }
+}
