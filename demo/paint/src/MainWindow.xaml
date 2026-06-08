@@ -13,7 +13,6 @@
 
 	<Grid>
 		<Grid.Resources>
-			<!--  图标按钮通用样式：无内边距、内容居中、固定 36×36  -->
 			<Style
 				x:Key="IconButtonStyle"
 				BasedOn="{StaticResource DefaultButtonStyle}"
@@ -40,9 +39,6 @@
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 
-		<!--  ═══════════════════════════════════════════════════════  -->
-		<!--  顶部工具栏 (mspaint 风格)  -->
-		<!--  ═══════════════════════════════════════════════════════  -->
 		<Border
 			Grid.Row="0"
 			Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -54,7 +50,6 @@
 				Orientation="Horizontal"
 				Spacing="6">
 
-				<!--  ── 绘图工具切换 (ToggleButton + PathIcon) ──  -->
 				<ToggleButton
 					x:Name="PenToolButton"
 					Checked="ToolButton_Checked"
@@ -111,7 +106,6 @@
 						Glyph="&#xEA3A;" />
 				</ToggleButton>
 
-				<!--  分隔线  -->
 				<Border
 					Width="1"
 					Height="24"
@@ -119,7 +113,6 @@
 					VerticalAlignment="Center"
 					Background="{ThemeResource TextFillColorSecondaryBrush}" />
 
-				<!--  ── 笔触粗细 ──  -->
 				<TextBlock
 					VerticalAlignment="Center"
 					FontSize="12"
@@ -141,7 +134,6 @@
 					Foreground="{ThemeResource TextFillColorSecondaryBrush}"
 					Text="3 px" />
 
-				<!--  分隔线  -->
 				<Border
 					Width="1"
 					Height="24"
@@ -149,7 +141,6 @@
 					VerticalAlignment="Center"
 					Background="{ThemeResource TextFillColorSecondaryBrush}" />
 
-				<!--  ── 取色器 (颜色预览按钮 + Flyout) ──  -->
 				<Button
 					x:Name="ColorButton"
 					Width="36"
@@ -165,7 +156,6 @@
 								</Style>
 							</Flyout.FlyoutPresenterStyle>
 							<StackPanel Spacing="12">
-								<!--  完整 ColorPicker  -->
 								<ColorPicker
 									x:Name="BrushColorPicker"
 									ColorChanged="BrushColorPicker_ColorChanged"
@@ -175,7 +165,6 @@
 									IsHexInputVisible="False"
 									Color="Black" />
 
-								<!--  预制色  -->
 								<TextBlock
 									FontSize="12"
 									FontWeight="SemiBold"
@@ -185,7 +174,6 @@
 							</StackPanel>
 						</Flyout>
 					</Button.Flyout>
-					<!--  颜色预览色块  -->
 					<Rectangle
 						x:Name="ColorPreviewRect"
 						Width="22"
@@ -200,7 +188,6 @@
 					</Rectangle>
 				</Button>
 
-				<!--  分隔线  -->
 				<Border
 					Width="1"
 					Height="24"
@@ -208,7 +195,6 @@
 					VerticalAlignment="Center"
 					Background="{ThemeResource TextFillColorSecondaryBrush}" />
 
-				<!--  ── 操作按钮 (Undo / Clear) ──  -->
 				<Button
 					x:Name="UndoButton"
 					Click="UndoButton_Click"
@@ -235,9 +221,6 @@
 			</StackPanel>
 		</Border>
 
-		<!--  ═══════════════════════════════════════════════════════  -->
-		<!--  绘图画布  -->
-		<!--  ═══════════════════════════════════════════════════════  -->
 		<canvas:CanvasControl
 			x:Name="PaintCanvas"
 			Grid.Row="1"

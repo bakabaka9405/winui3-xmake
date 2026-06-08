@@ -29,20 +29,13 @@ muxm::SolidColorBrush GetThemeBrush(winrt::hstring const& resourceKey) {
 	return brush;
 }
 
-// ═══════════════════════════════════════════════════════════
-// 构造与初始化
-// ═══════════════════════════════════════════════════════════
-
 MainWindow::MainWindow() {
 	InitializeComponent();
 
-	// 窗口尺寸
 	this->AppWindow().Resize({ 1440, 900 });
 
-	// 动态生成预制色按钮
 	BuildPresetColors();
 
-	// 监听粗细滑块值变化以更新标签
 	ThicknessSlider().ValueChanged([this](
 									   winrt::Windows::Foundation::IInspectable const&,
 									   RangeBaseValueChangedEventArgs const& args) {
@@ -50,51 +43,44 @@ MainWindow::MainWindow() {
 		ThicknessLabel().Text(std::to_wstring(value) + L" px");
 	});
 
-	// 标记初始化完成 —— 此后事件处理程序方可访问全部控件
 	m_isInitialized = true;
 }
-
-// ═══════════════════════════════════════════════════════════
-// CanvasControl — 绘制事件
-// ═══════════════════════════════════════════════════════════
 
 void MainWindow::PaintCanvas_Draw(
 	mgcux::CanvasControl const&,
 	mgcux::CanvasDrawEventArgs const& args) {
 	auto ds = args.DrawingSession();
 
-	// 绘制所有已完成的笔触
 	for (auto const& stroke : m_strokes) {
 		DrawStroke(ds, stroke);
 	}
 
-	// 绘制当前进行中的笔触（实时预览）
 	if (m_isDrawing && m_currentStroke.points.size() >= 1) {
 		DrawStroke(ds, m_currentStroke);
 	}
 }
 
-// ═══════════════════════════════════════════════════════════
-// CanvasControl — 指针事件处理
-// ═══════════════════════════════════════════════════════════
-
 void MainWindow::PaintCanvas_PointerPressed(
 	winrt::Windows::Foundation::IInspectable const& sender,
 	PointerRoutedEventArgs const& e) {
-	// 捕获指针以确保后续事件不会丢失
+	// 捕获指针，保证拖出画布后的释放事件仍能结束当前笔触。
 	auto canvas = sender.as<mgcux::CanvasControl>();
 	canvas.CapturePointer(e.Pointer());
 	e.Handled(true);
 
-	// 初始化当前笔触
 	m_currentStroke.points.clear();
-	m_pointerFilter.Reset();
-	// 首个点亦经过滤波（首次调用返回原始值，随后逐渐平滑）
-	m_currentStroke.points.push_back(m_pointerFilter.Step(
-		GetCanvasPoint(e), std::chrono::steady_clock::now()));
 	m_currentStroke.tool = GetActiveTool();
 
-	// 防御性读取 —— Flyout 内的 ColorPicker 可能在名称作用域中为空
+	auto const raw = GetCanvasPoint(e);
+	if (m_currentStroke.tool == DrawingTool::Pen) {
+		m_pointerFilter.Reset();
+		m_currentStroke.points.push_back(m_pointerFilter.Step(
+			raw, std::chrono::steady_clock::now()));
+	} else {
+		m_currentStroke.points.push_back(raw);
+	}
+
+	// Flyout 内控件可能尚未实例化；此时使用默认黑色。
 	auto picker = BrushColorPicker();
 	m_currentStroke.color = picker ? picker.Color() : winrt::Windows::UI::Colors::Black();
 	m_currentStroke.thickness = static_cast<float>(ThicknessSlider().Value());
@@ -107,16 +93,30 @@ void MainWindow::PaintCanvas_PointerMoved(
 	if (!m_isDrawing) return;
 
 	auto const raw = GetCanvasPoint(e);
+	auto pt = raw;
 
-	// One Euro 低通滤波：消除手抖微颤
-	auto const pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
+	if (m_currentStroke.tool != DrawingTool::Pen) {
+		if (m_currentStroke.points.empty()) {
+			m_currentStroke.points.push_back(pt);
+		} else if (m_currentStroke.points.size() == 1) {
+			m_currentStroke.points.push_back(pt);
+		} else {
+			m_currentStroke.points.back() = pt;
+		}
 
-	// 距离过滤：距上一有效点 < 2px 则跳过，减少冗余采样
+		PaintCanvas().Invalidate();
+		return;
+	}
+
+	// 仅自由画笔需要滤波；形状工具必须保留端点精度。
+	pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
+
+	// 跳过 2px 内的采样，降低路径复杂度且不影响可见笔迹。
 	if (!m_currentStroke.points.empty()) {
 		auto const& last = m_currentStroke.points.back();
 		float const dx = pt.X - last.X;
 		float const dy = pt.Y - last.Y;
-		if (dx * dx + dy * dy < 4.0f) {  // 2² = 4
+		if (dx * dx + dy * dy < 4.0f) {
 			return;
 		}
 	}
@@ -133,21 +133,30 @@ void MainWindow::PaintCanvas_PointerReleased(
 	auto canvas = sender.as<mgcux::CanvasControl>();
 	canvas.ReleasePointerCapture(e.Pointer());
 
-	// 记录终点（经 One Euro 滤波与距离过滤，避免末端折角）
+	// 形状工具以原始释放位置作为终点，避免滤波造成几何边界偏移。
 	auto const raw = GetCanvasPoint(e);
-	auto const pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
-	if (!m_currentStroke.points.empty()) {
+	auto pt = raw;
+	if (m_currentStroke.tool == DrawingTool::Pen) {
+		pt = m_pointerFilter.Step(raw, std::chrono::steady_clock::now());
+	}
+	else if (m_currentStroke.points.size() == 1) {
+		m_currentStroke.points.push_back(pt);
+	}
+	else if (!m_currentStroke.points.empty()) {
+		m_currentStroke.points.back() = pt;
+	}
+
+	if (m_currentStroke.tool == DrawingTool::Pen && !m_currentStroke.points.empty()) {
 		auto const& last = m_currentStroke.points.back();
 		float const dx = pt.X - last.X;
 		float const dy = pt.Y - last.Y;
-		if (dx * dx + dy * dy >= 4.0f) {  // 距上一点 ≥2px 才记录
+		if (dx * dx + dy * dy >= 4.0f) {
 			m_currentStroke.points.push_back(pt);
 		}
-	} else {
+	} else if (m_currentStroke.points.empty()) {
 		m_currentStroke.points.push_back(pt);
 	}
 
-	// 将当前笔触提交到历史列表（标记完成以允许几何缓存）
 	m_currentStroke.isComplete = true;
 	m_strokes.push_back(std::move(m_currentStroke));
 	m_currentStroke = PaintStroke{};
@@ -156,10 +165,6 @@ void MainWindow::PaintCanvas_PointerReleased(
 	PaintCanvas().Invalidate();
 	UpdateButtonStates();
 }
-
-// ═══════════════════════════════════════════════════════════
-// 工具切换 — ToggleButton 事件处理
-// ═══════════════════════════════════════════════════════════
 
 void MainWindow::ToolButton_Checked(
 	winrt::Windows::Foundation::IInspectable const& sender,
@@ -193,7 +198,7 @@ void MainWindow::ToolButton_Unchecked(
 	winrt::Windows::Foundation::IInspectable const& sender,
 	RoutedEventArgs const&) {
 	if (!m_isInitialized) return;
-	// 阻止取消选中最后一个工具 —— 强制重新选中
+	// 始终保留一个激活工具，避免指针事件进入未定义的绘制模式。
 	if (m_isUpdatingTools) return;
 
 	auto button = sender.try_as<ToggleButton>();
@@ -219,10 +224,6 @@ void MainWindow::UpdateToolButtonStates(DrawingTool tool) {
 	m_isUpdatingTools = false;
 }
 
-// ═══════════════════════════════════════════════════════════
-// 取色器 — 颜色预览 与 预制色
-// ═══════════════════════════════════════════════════════════
-
 void MainWindow::UpdateColorPreview() {
 	auto picker = BrushColorPicker();
 	if (!picker) return;
@@ -235,12 +236,10 @@ void MainWindow::BrushColorPicker_ColorChanged(
 	ColorPicker const&,
 	ColorChangedEventArgs const&) {
 	if (!m_isInitialized) return;
-	// 更新颜色预览色块，使其与 ColorPicker 当前颜色同步
 	UpdateColorPreview();
 }
 
 void MainWindow::BuildPresetColors() {
-	// ── 预制色定义表（名称 + RGB） ─────────────────────────
 	struct PresetColorDef {
 		std::wstring_view tooltip;
 		uint8_t r, g, b;
@@ -269,7 +268,6 @@ void MainWindow::BuildPresetColors() {
 		{ L"橙红", 0xFF, 0x45, 0x00 },
 	} };
 
-	// ── 创建两行布局 ──────────────────────────────────────
 	auto row1 = StackPanel();
 	row1.Orientation(Orientation::Horizontal);
 	row1.Spacing(4);
@@ -281,12 +279,10 @@ void MainWindow::BuildPresetColors() {
 	for (size_t i = 0; i < s_colors.size(); ++i) {
 		auto const& def = s_colors[i];
 
-		// 构造颜色
 		winrt::Windows::UI::Color color{
 			.A = 255, .R = def.r, .G = def.g, .B = def.b
 		};
 
-		// 色块 Rectangle
 		auto rect = Rectangle();
 		rect.Width(16);
 		rect.Height(16);
@@ -294,7 +290,6 @@ void MainWindow::BuildPresetColors() {
 		rect.RadiusY(2);
 		rect.Fill(muxm::SolidColorBrush(color));
 
-		// 按钮
 		auto btn = Button();
 		btn.Width(24);
 		btn.Height(24);
@@ -303,7 +298,6 @@ void MainWindow::BuildPresetColors() {
 		btn.Click({ this, &MainWindow::PresetColor_Click });
 		ToolTipService::SetToolTip(btn, winrt::box_value(def.tooltip));
 
-		// 分配到两行
 		if (i < 10) row1.Children().Append(btn);
 		else row2.Children().Append(btn);
 	}
@@ -315,7 +309,6 @@ void MainWindow::BuildPresetColors() {
 void MainWindow::PresetColor_Click(
 	winrt::Windows::Foundation::IInspectable const& sender,
 	RoutedEventArgs const&) {
-	// 安全向下转型：尝试从 Button → Rectangle → SolidColorBrush
 	auto button = sender.try_as<Button>();
 	if (!button) return;
 
@@ -327,20 +320,14 @@ void MainWindow::PresetColor_Click(
 
 	auto color = brush.Color();
 
-	// 将预制色设置为 ColorPicker 的当前颜色（防御性空值检查）
 	auto picker = BrushColorPicker();
 	if (picker) {
 		picker.Color(color);
 		UpdateColorPreview();
 	}
 
-	// 选择颜色后关闭 Flyout
 	ColorButton().Flyout().Hide();
 }
-
-// ═══════════════════════════════════════════════════════════
-// 操作按钮 — 撤销 / 清空
-// ═══════════════════════════════════════════════════════════
 
 void MainWindow::UndoButton_Click(
 	winrt::Windows::Foundation::IInspectable const&,
@@ -360,20 +347,13 @@ void MainWindow::ClearButton_Click(
 	UpdateButtonStates();
 }
 
-// ═══════════════════════════════════════════════════════════
-// 辅助函数
-// ═══════════════════════════════════════════════════════════
-
 DrawingTool MainWindow::GetActiveTool() {
 	return m_activeTool;
 }
 
-// ═══════════════════════════════════════════════════════════
 // Catmull-Rom 样条 → 三次 Bezier 控制点转换
 // 将四个 Catmull-Rom 控制点 (P0,P1,P2,P3) 转换为以 P1 为起点、
 // P2 为终点的三次 Bezier 段，使用 Cardinal 张力 = 0.5。
-// ═══════════════════════════════════════════════════════════
-
 struct BezierSegment {
 	winrt::Windows::Foundation::Point control1;
 	winrt::Windows::Foundation::Point control2;
@@ -385,7 +365,6 @@ static BezierSegment CatmullRomToBezier(
 	winrt::Windows::Foundation::Point const& p1,
 	winrt::Windows::Foundation::Point const& p2,
 	winrt::Windows::Foundation::Point const& p3) {
-	// 控制点偏移量：k = (1 - tension) / 6 = 0.5 / 6 = 1 / 12
 	constexpr float k = 1.0f / 12.0f;
 	return BezierSegment{
 		.control1 = { p1.X + k * (p2.X - p0.X), p1.Y + k * (p2.Y - p0.Y) },
@@ -393,10 +372,6 @@ static BezierSegment CatmullRomToBezier(
 		.end = p2
 	};
 }
-
-// ═══════════════════════════════════════════════════════════
-// One Euro Filter 步进实现
-// ═══════════════════════════════════════════════════════════
 
 static float ComputeAlpha(float dt, float cutoff) {
 	float const tau = 1.0f / (2.0f * 3.14159265358979323846f * cutoff);
@@ -418,23 +393,20 @@ winrt::Windows::Foundation::Point OneEuroFilter::Step(
 	auto const dt = std::chrono::duration<float>(now - tPrev).count();
 	if (dt <= 0.0f) return filteredPrev;
 
-	// 阶段 1：对导数（速度）做低通滤波
+	// 先平滑速度，再用速度决定位置滤波强度。
 	float const dx = (raw.X - rawPrev.X) / dt;
 	float const dy = (raw.Y - rawPrev.Y) / dt;
 	float const ad = ComputeAlpha(dt, dcutoff);
 	float const dxh = dhatPrev.X + ad * (dx - dhatPrev.X);
 	float const dyh = dhatPrev.Y + ad * (dy - dhatPrev.Y);
 
-	// 阶段 2：根据速度自适应计算截止频率
 	float const speed = std::sqrt(dxh * dxh + dyh * dyh);
 	float const cutoff = minCutoff + beta * speed;
 
-	// 阶段 3：对位置信号做低通滤波
 	float const a = ComputeAlpha(dt, cutoff);
 	float const xh = filteredPrev.X + a * (raw.X - filteredPrev.X);
 	float const yh = filteredPrev.Y + a * (raw.Y - filteredPrev.Y);
 
-	// 阶段 4：更新滤波器状态
 	rawPrev = raw;
 	filteredPrev = { xh, yh };
 	dhatPrev = { dxh, dyh };
@@ -453,19 +425,17 @@ void MainWindow::DrawStroke(
 
 	switch (stroke.tool) {
 
-	// ── 画笔模式：Catmull-Rom 样条平滑渲染 ──────────────────
 	case DrawingTool::Pen: {
 		auto const n = stroke.points.size();
 		if (n == 0) break;
 
-		// 单点回退：绘制点状标记
+		// 单点和双点无法构造样条，退化为 Win2D 基础图元。
 		if (n == 1) {
 			auto const& p = stroke.points[0];
 			ds.DrawLine(p.X, p.Y, p.X + 0.5f, p.Y + 0.5f, color, thickness);
 			break;
 		}
 
-		// 双点回退：简单直线
 		if (n == 2) {
 			auto const& p0 = stroke.points[0];
 			auto const& p1 = stroke.points[1];
@@ -473,8 +443,7 @@ void MainWindow::DrawStroke(
 			break;
 		}
 
-		// ≥ 3 点：Catmull-Rom 样条 → CanvasPathBuilder → DrawGeometry
-		// 若已缓存，复用几何体（避免每帧重建）
+		// 已完成笔触复用几何体；实时预览笔触继续逐帧重建。
 		if (stroke.cachedGeometry) {
 			ds.DrawGeometry(stroke.cachedGeometry, color, thickness);
 			break;
@@ -482,7 +451,7 @@ void MainWindow::DrawStroke(
 
 		auto pathBuilder = mgc::Geometry::CanvasPathBuilder(ds);
 
-		// 虚拟首端控制点：镜像 P1 关于 P0 的对称点
+		// 镜像端点为首尾两段补足 Catmull-Rom 所需的四个控制点。
 		auto const& P0 = stroke.points[0];
 		auto const& P1 = stroke.points[1];
 		auto const vBefore = winrt::Windows::Foundation::Point{
@@ -491,7 +460,6 @@ void MainWindow::DrawStroke(
 
 		pathBuilder.BeginFigure({ P0.X, P0.Y });
 
-		// 首段：vBefore → P0 → P1 → P2
 		{
 			auto seg = CatmullRomToBezier(vBefore, P0, P1, stroke.points[2]);
 			pathBuilder.AddCubicBezier(
@@ -500,7 +468,6 @@ void MainWindow::DrawStroke(
 				{ seg.end.X, seg.end.Y });
 		}
 
-		// 中间段：Pi-1 → Pi → Pi+1 → Pi+2  (i = 1 .. n-3)
 		for (size_t i = 1; i + 2 < n; ++i) {
 			auto seg = CatmullRomToBezier(
 				stroke.points[i - 1], stroke.points[i],
@@ -511,7 +478,6 @@ void MainWindow::DrawStroke(
 				{ seg.end.X, seg.end.Y });
 		}
 
-		// 末段：P{n-3} → P{n-2} → P{n-1} → vAfter
 		{
 			auto const& Pn2 = stroke.points[n - 2];
 			auto const& Pn1 = stroke.points[n - 1];
@@ -528,7 +494,6 @@ void MainWindow::DrawStroke(
 
 		pathBuilder.EndFigure(mgc::Geometry::CanvasFigureLoop::Open);
 		auto geometry = mgc::Geometry::CanvasGeometry::CreatePath(pathBuilder);
-		// 仅对已完成的笔触缓存几何体——实时预览笔触每帧变化
 		if (stroke.isComplete) {
 			stroke.cachedGeometry = geometry;
 		}
@@ -536,7 +501,6 @@ void MainWindow::DrawStroke(
 		break;
 	}
 
-	// ── 直线模式 ────────────────────────────────────────────
 	case DrawingTool::Line: {
 		auto const& p0 = stroke.points.front();
 		auto const& p1 = stroke.points.back();
@@ -544,7 +508,6 @@ void MainWindow::DrawStroke(
 		break;
 	}
 
-	// ── 矩形模式 ────────────────────────────────────────────
 	case DrawingTool::Rectangle: {
 		auto const& p0 = stroke.points.front();
 		auto const& p1 = stroke.points.back();
@@ -556,7 +519,6 @@ void MainWindow::DrawStroke(
 		break;
 	}
 
-	// ── 椭圆模式 ────────────────────────────────────────────
 	case DrawingTool::Ellipse: {
 		auto const& p0 = stroke.points.front();
 		auto const& p1 = stroke.points.back();

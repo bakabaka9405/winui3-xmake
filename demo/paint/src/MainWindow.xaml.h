@@ -12,7 +12,6 @@ namespace mgcux = winrt::Microsoft::Graphics::Canvas::UI::Xaml;
 
 namespace winrt::paint::implementation {
 
-// 绘图工具枚举
 enum class DrawingTool {
 	Pen,
 	Line,
@@ -20,23 +19,21 @@ enum class DrawingTool {
 	Ellipse,
 };
 
-// 单次笔触的数据结构
 struct PaintStroke {
 	std::vector<winrt::Windows::Foundation::Point> points;
 	DrawingTool tool;
 	winrt::Windows::UI::Color color;
 	float thickness;
-	bool isComplete = false;                              // 笔触是否已提交——决定是否缓存几何体
+	bool isComplete = false;
+	// 仅完成后的笔触可缓存几何体；实时预览路径每帧都会变化。
 	mutable mgc::Geometry::CanvasGeometry cachedGeometry{ nullptr };
 };
 
-// One Euro Filter — 自适应低通滤波，消除手抖噪声
-// 参考：Casiez, Roussel, Vogel (CHI 2012)
-// 原理：根据笔触速度动态调整截止频率——慢速强滤波，快速弱滤波
+// One Euro Filter 根据笔触速度调整截止频率：慢速强滤波，快速弱滤波。
 struct OneEuroFilter {
-	float minCutoff = 1.0f;                             // 最低截止频率 (Hz)
-	float beta = 0.007f;                                 // 速度系数
-	float dcutoff = 1.0f;                                // 导数滤波截止频率 (Hz)
+	float minCutoff = 1.0f;
+	float beta = 0.007f;
+	float dcutoff = 1.0f;
 
 	bool initialized = false;
 	winrt::Windows::Foundation::Point rawPrev{};
@@ -54,7 +51,6 @@ struct OneEuroFilter {
 struct MainWindow : MainWindowT<MainWindow> {
 	MainWindow();
 
-	// ── CanvasControl 事件 ──────────────────────────────────
 	void PaintCanvas_Draw(
 		mgcux::CanvasControl const& sender,
 		mgcux::CanvasDrawEventArgs const& args);
@@ -71,7 +67,6 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& e);
 
-	// ── 工具切换事件 ────────────────────────────────────────
 	void ToolButton_Checked(
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
@@ -80,7 +75,6 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
 
-	// ── 取色器事件 ──────────────────────────────────────────
 	void BrushColorPicker_ColorChanged(
 		winrt::Microsoft::UI::Xaml::Controls::ColorPicker const& sender,
 		winrt::Microsoft::UI::Xaml::Controls::ColorChangedEventArgs const& args);
@@ -89,7 +83,6 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
 
-	// ── 操作按钮事件 ────────────────────────────────────────
 	void UndoButton_Click(
 		winrt::Windows::Foundation::IInspectable const& sender,
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
@@ -99,7 +92,6 @@ struct MainWindow : MainWindowT<MainWindow> {
 		winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
 
 private:
-	// ── 辅助函数 ────────────────────────────────────────────
 	DrawingTool GetActiveTool();
 	void UpdateToolButtonStates(DrawingTool tool);
 	void UpdateColorPreview();
@@ -109,7 +101,6 @@ private:
 	winrt::Windows::Foundation::Point GetCanvasPoint(
 		winrt::Microsoft::UI::Xaml::Input::PointerRoutedEventArgs const& e);
 
-	// ── 绘图状态 ────────────────────────────────────────────
 	std::vector<PaintStroke> m_strokes;
 	PaintStroke m_currentStroke{};
 	bool m_isDrawing = false;
@@ -117,7 +108,7 @@ private:
 	bool m_isUpdatingTools = false;
 	OneEuroFilter m_pointerFilter;
 
-	// 初始化守卫：防止 XAML 加载期间事件访问尚未就绪的控件
+	// XAML 加载期间可能触发事件，控件完全初始化前忽略这些回调。
 	bool m_isInitialized = false;
 };
 
