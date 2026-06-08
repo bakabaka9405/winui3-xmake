@@ -52,6 +52,7 @@ function on_prepare(target)
                     table.insert(args, "-ref")
                     table.insert(args, wm)
                 end
+                table.insert(args, "-modules")
                 table.insert(args, "-out")
                 table.insert(args, shared.shared_dir)
                 os.vrunv(tools.cppwinrt, args)
