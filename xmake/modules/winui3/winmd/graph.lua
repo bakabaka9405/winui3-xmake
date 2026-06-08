@@ -40,7 +40,7 @@ local NODE_SPECS = {
     },
     {
         id      = "win2d",
-        deps    = {"platform", "webview2"},
+        deps    = {"platform", "webview2", "appsdk"},
         enabled = function(target)
             return target:rule("win2d") ~= nil
         end,
