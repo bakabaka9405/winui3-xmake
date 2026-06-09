@@ -33,7 +33,6 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
     local namespace = target:values("winui3.namespace")
     local autogen_root  = target:autogendir({root = true})
     local generated_dir = path.join(autogen_root, "generated")
-    local sources_dir = path.join(generated_dir, "sources")
     local unmerged_dir = path.join(autogen_root, "winmd_unmerged")
     local merged_dir = path.join(autogen_root, "winmd_merged")
     local merged_winmd = path.join(autogen_root, "winmd_merged", namespace .. ".winmd")
@@ -70,7 +69,6 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
         os.mkdir(unmerged_dir)
         os.mkdir(merged_dir)
         os.mkdir(generated_dir)
-        os.mkdir(sources_dir)
 
         for _, idl_path in ipairs(idl_files) do
             local out_winmd = _idl_to_winmd(unmerged_dir, idl_path, os.projectdir())
@@ -140,7 +138,7 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
         local cppwinrt_args = {
             "-in",  merged_winmd,
             "-out", generated_dir,
-            "-comp", sources_dir,
+            "-comp",
             "-name", namespace,
             "-pch", "pch.h",
             "-prefix",
@@ -166,6 +164,3 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
     })
 
 end
-
-
-
