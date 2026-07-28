@@ -1,13 +1,14 @@
 #pragma once
 
-#include <winrt/base.h>
 #include "MainWindow.g.h"
+
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Media.Capture.Frames.h>
 #include <winrt/Windows.Media.Capture.h>
 #include <winrt/Windows.Media.Core.h>
 #include <winrt/Windows.Media.Devices.h>
 #include <winrt/Windows.Media.Playback.h>
+#include <winrt/base.h>
 
 namespace winrt::camera::implementation {
 struct MainWindow : MainWindowT<MainWindow> {

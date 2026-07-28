@@ -65,12 +65,9 @@ local function _discover_header_files(all_xaml)
     return header_files
 end
 
--- IDL 规则的 before_build_files 在此回调之前已通过 add_deps 保证执行完毕，merged WinMD 就绪。
-function before_build(target)
-    local xaml_batch = target:sourcebatches()["winui3.xaml"]
-    if not xaml_batch then return end
-
-    local all_xaml = xaml_batch.sourcefiles
+function before_prepare_files(target, sourcebatch, opt)
+    local all_xaml = sourcebatch.sourcefiles
+    if not all_xaml or #all_xaml == 0 then return end
     local shared = winmd_context.ensure(target)
     local namespace = target:values("winui3.namespace")
     local autogen_root  = target:autogendir({root = true})
@@ -83,8 +80,6 @@ function before_build(target)
         table.insert(input_files, hfp.hf)
     end
 
-    local dependfile = path.join(target:dependir({root = true}), "xaml.d")
-
     -- 仅在 XAML 源文件或关联头文件变更时执行 Pass1（生成 .xbf）和 Pass2（生成 .g.hpp / .g.cpp）
     depend.on_changed(function()
         local tools = import("winui3.tools")()
@@ -94,8 +89,6 @@ function before_build(target)
         local ref_winmds = shared.ref_winmds
         local sdk_version = shared.sdk_version
         if not sdk_version then raise("winui3.xaml: cannot determine Windows SDK version") end
-
-        os.mkdir(generated_dir)
 
         local app_xaml, xaml_pages = _classify_xaml(all_xaml)
 
@@ -107,7 +100,6 @@ function before_build(target)
             LanguageSourceExtension = ".cpp",
             OutputPath             = path.absolute(generated_dir),
             RootNamespace          = namespace,
-            PrecompiledHeaderFile  = "pch.h",
             FeatureControlFlags    = "EnableXBindDiagnostics;EnableDefaultValidationContextGeneration;EnableWin32Codegen",
             ReferenceAssemblies    = {},
             ReferenceAssemblyPaths = {},
@@ -144,8 +136,7 @@ function before_build(target)
         os.vrunv(xaml_compiler, {path.join(generated_dir, "pass2.json"), path.join(generated_dir, "pass2_out.json")}, {envs = target:toolchain("msvc"):runenvs()})
     end, {
         files      = input_files,
-        dependfile = dependfile,
+        dependfile = path.join(target:dependir({root = true}), "xaml.d"),
         changed    = option.get("rebuild"),
     })
 end
-

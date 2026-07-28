@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MainWindow.g.h"
+
 #include <winrt/Microsoft.Web.WebView2.Core.h>
 
 namespace winrt::webview::implementation {

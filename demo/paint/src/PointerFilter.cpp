@@ -1,8 +1,6 @@
-#include "PointerFilter.h"
 #include "pch.h"
 
-
-#include <cmath>
+#include "PointerFilter.h"
 
 namespace winrt::paint::implementation {
 

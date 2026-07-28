@@ -4,7 +4,7 @@ includes("xmake/plugins/*.lua")
 includes("xmake/rules/*.lua")
 add_rules("mode.debug", "mode.release", "mode.dist")
 set_version("1.0.0")
-set_languages("cxx20")
+set_languages("cxxlatest")
 
 option("winui3_xaml_compiler_path")
     set_default("")

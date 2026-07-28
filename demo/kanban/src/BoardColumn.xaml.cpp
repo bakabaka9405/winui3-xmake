@@ -1,11 +1,11 @@
-#include "BoardColumn.xaml.h"
 #include "pch.h"
+
+#include "BoardColumn.xaml.h"
 
 #include "BoardView.xaml.h"
 
 #include <cwctype>
 #include <string_view>
-
 #include <winrt/Microsoft.UI.Input.h>
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
@@ -221,9 +221,9 @@ bool BoardColumn::IsColumnHeaderBlankPoint(PointerRoutedEventArgs const& e) {
 	}
 
 	return !IsPointerInsideElement(TitleEditor(), relativeTo, point)
-		&& !IsPointerInsideElement(CountBadge(), relativeTo, point)
-		&& !IsPointerInsideElement(CollapseButton(), relativeTo, point)
-		&& !IsPointerInsideElement(DeleteButton(), relativeTo, point);
+		   && !IsPointerInsideElement(CountBadge(), relativeTo, point)
+		   && !IsPointerInsideElement(CollapseButton(), relativeTo, point)
+		   && !IsPointerInsideElement(DeleteButton(), relativeTo, point);
 }
 
 void BoardColumn::BeginColumnHeaderDrag() {

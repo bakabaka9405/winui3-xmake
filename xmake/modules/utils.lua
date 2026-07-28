@@ -22,6 +22,22 @@ function write_response_file(target, filename, args)
     return rsp
 end
 
+--- 仅在内容变化时写入文件，保持未变文件的 mtime，避免增量构建重复触发。
+---
+---@param filepath string 文件路径
+---@param content string 文件内容
+---@return boolean 是否发生了写入（内容有变化时返回 true，无变化时返回 false）
+function write_file_if_changed(filepath, content)
+    if os.isfile(filepath) then
+        local existing = io.readfile(filepath)
+        if existing == content then
+            return false
+        end
+    end
+    io.writefile(filepath, content)
+    return true
+end
+
 --- 从版本字符串列表中选取最大版本号（按 4 段数值逐段比较）。
 ---
 --- 仅处理符合 X.Y.Z.W 格式的四段版本号，跳过不符合格式的字符串。

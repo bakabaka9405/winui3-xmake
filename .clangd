@@ -162,6 +162,7 @@ Diagnostics:
       readability-identifier-naming.VariableCase: camelCase
 
 CompileFlags:
+  CompilationDatabase: .vscode
   Add: [
       # -xc++,
       # -Wall,
@@ -170,6 +171,23 @@ CompileFlags:
       -Wno-c++98-compat,
       -std:c++20,
       # -DMR_CLANGD,
+      -DWINUI3_CLANGD_TEXT_PROJECTION=1,
+      -UWINRT_ENABLE_LEGACY_COM,
+      -UWINUI3_IMPORT_MODULE,
+    ]
+  Remove: [
+      /interface,
+      /interface*,
+      /internalPartition,
+      /internalPartition*,
+      /ifcOutput,
+      /ifcOutput*,
+      /reference,
+      /reference*,
+      -DWINRT_ENABLE_LEGACY_COM,
+      /DWINRT_ENABLE_LEGACY_COM,
+      -DWINUI3_IMPORT_MODULE=*,
+      /DWINUI3_IMPORT_MODULE=*,
     ]
   Compiler: 'C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe'
 

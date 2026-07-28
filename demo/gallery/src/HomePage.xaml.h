@@ -4,7 +4,7 @@
 
 namespace winrt::gallery::implementation {
 struct HomePage : HomePageT<HomePage> {
-    HomePage();
+	HomePage();
 };
 } // namespace winrt::gallery::implementation
 

@@ -10,6 +10,7 @@
 --   winui3.clean            — 清理生成文件
 --   winui3.app              — 应用组合规则（通过 add_deps 聚合上述所有规则）
 --
+includes("winui3/modules/xmake.lua")
 includes("winui3/env/xmake.lua")
 includes("winui3/shared_projection/xmake.lua")
 includes("winui3/xmdp/xmake.lua")

@@ -3,6 +3,7 @@
 #include "BoardViewModel.g.h"
 #include "CardData.g.h"
 #include "ColumnData.g.h"
+
 #include <winrt/Windows.Foundation.Collections.h>
 
 namespace winrt::kanban::implementation {
@@ -55,7 +56,6 @@ struct BoardViewModel : BoardViewModelT<BoardViewModel> {
 	void Load();
 
 private:
-
 	winrt::Windows::Foundation::Collections::IObservableVector<winrt::kanban::ColumnData> m_columns{ nullptr };
 };
 } // namespace winrt::kanban::implementation

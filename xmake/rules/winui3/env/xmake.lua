@@ -5,6 +5,11 @@ rule("winui3.env")
         env.on_load(target)
     end)
 
+    before_prepare(function (target)
+        local env = import("env")
+        env.before_prepare(target)
+    end)
+
     on_config(function (target)
         local env = import("env")
         env.on_config(target)

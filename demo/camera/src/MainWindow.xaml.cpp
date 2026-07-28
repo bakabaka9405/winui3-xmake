@@ -1,5 +1,6 @@
-#include "MainWindow.xaml.h"
 #include "pch.h"
+
+#include "MainWindow.xaml.h"
 
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
@@ -53,7 +54,8 @@ winrt::fire_and_forget MainWindow::GetCameraButton_Click(
 			CameraComboBox().SelectedIndex(0);
 		}
 		StatusTextBlock().Text(winrt::to_hstring(m_devices.Size()) + L" camera devices found.");
-	} catch (winrt::hresult_error const& error) {
+	}
+	catch (winrt::hresult_error const& error) {
 		ReportError(L"Get camera devices", error);
 	}
 
@@ -108,13 +110,14 @@ winrt::fire_and_forget MainWindow::StartCameraButton_Click(
 		CameraPreview().SetMediaPlayer(m_mediaPlayer);
 		m_mediaPlayer.Play();
 		StatusTextBlock().Text(L"Camera started.");
-	} catch (winrt::hresult_error const& error) {
+	}
+	catch (winrt::hresult_error const& error) {
 		try {
 			CloseCamera();
-		} catch (winrt::hresult_error const& closeError) {
+		}
+		catch (winrt::hresult_error const& closeError) {
 			StatusTextBlock().Text(
-				winrt::hstring(L"Start camera failed: ") + error.message() +
-				L"; cleanup failed: " + closeError.message());
+				winrt::hstring(L"Start camera failed: ") + error.message() + L"; cleanup failed: " + closeError.message());
 			SetCameraControlsEnabled(true);
 			co_return;
 		}
@@ -133,7 +136,8 @@ winrt::fire_and_forget MainWindow::StopCameraButton_Click(
 	try {
 		CloseCamera();
 		StatusTextBlock().Text(L"Camera stopped.");
-	} catch (winrt::hresult_error const& error) {
+	}
+	catch (winrt::hresult_error const& error) {
 		ReportError(L"Stop camera", error);
 	}
 

@@ -17,14 +17,13 @@ local config = import("core.project.config")
 
 function after_clean(target)
     local autogen_root = target:autogendir({root = true})
-    if os.isdir(autogen_root) then
-        os.rm(autogen_root)
-    end
+    os.rm(path.join(autogen_root, "*.rsp"))
+    os.rm(path.join(autogen_root, "generated"))
+    os.rm(path.join(autogen_root, "winmd_merged"))
+    os.rm(path.join(autogen_root, "winmd_unmerged"))
 
     local depend_root = target:dependir({root = true})
-    if os.isdir(depend_root) then
-        os.rm(depend_root)
-    end
+    os.rm(path.join(depend_root, "*.d"))
 
     local deploy_dir = target:targetdir()
     if os.isdir(deploy_dir) then

@@ -4,7 +4,7 @@
 -- 执行完整的 MIDL → mdmerge → cppwinrt 管线。
 --
 -- 回调模型（遵循 xmake platform.windows.idl 参考模式）：
---   - before_build_files: 代码生成（MIDL → mdmerge → cppwinrt），{jobgraph=true, batch=true}
+--   - before_prepare_files: 生成项目 WinMD 与 C++/WinRT 投影，供后续 XAML 与模块扫描使用
 --
 -- 依赖上游规则：
 --   - winui3.env:              namespace 校验与目标编译环境
@@ -25,7 +25,6 @@ rule("winui3.idl")
         import("idl").after_load(target)
     end)
 
-    before_build_files(function (target, jobgraph, sourcebatch, opt)
-        import("idl").before_build_files(target, jobgraph, sourcebatch, opt)
-    end, {jobgraph = true, batch = true})
-
+    before_prepare_files(function (target, sourcebatch, opt)
+        import("idl").before_prepare_files(target, sourcebatch, opt)
+    end)

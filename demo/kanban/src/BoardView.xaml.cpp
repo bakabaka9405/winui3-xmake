@@ -1,11 +1,13 @@
 #include "pch.h"
+
 #include "BoardView.xaml.h"
+
 #include "BoardColumn.xaml.h"
 #include "BoardViewModel.h"
-#include <winrt/Microsoft.UI.Input.h>
-#include <winrt/Windows.ApplicationModel.DataTransfer.h>
 
 #include <algorithm>
+#include <winrt/Microsoft.UI.Input.h>
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
 
 #if __has_include("BoardView.g.cpp")
 #include "BoardView.g.cpp"

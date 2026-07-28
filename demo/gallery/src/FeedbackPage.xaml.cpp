@@ -1,5 +1,6 @@
-#include "FeedbackPage.xaml.h"
 #include "pch.h"
+
+#include "FeedbackPage.xaml.h"
 
 #if __has_include("FeedbackPage.g.cpp")
 #include "FeedbackPage.g.cpp"
@@ -118,8 +119,8 @@ void FeedbackPage::ProgressRingDeterminateToggle_Toggled(
 
 	DemoProgressRing().IsIndeterminate(!determinate);
 	mux::Visibility vis = determinate
-		? mux::Visibility::Visible
-		: mux::Visibility::Collapsed;
+							  ? mux::Visibility::Visible
+							  : mux::Visibility::Collapsed;
 	ProgressRingValueLabel().Visibility(vis);
 	ProgressRingValueSlider().Visibility(vis);
 
@@ -167,8 +168,8 @@ void FeedbackPage::InfoBarSeverityCombo_SelectionChanged(
 	case 3:
 		DemoInfoBar().Severity(muxc::InfoBarSeverity::Error);
 		break;
-    default:
-        break;
+	default:
+		break;
 	}
 }
 

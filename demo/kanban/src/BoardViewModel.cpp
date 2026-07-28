@@ -1,5 +1,6 @@
-#include "BoardViewModel.h"
 #include "pch.h"
+
+#include "BoardViewModel.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -213,7 +214,8 @@ void BoardViewModel::Load() {
 
 		std::string json{
 			std::istreambuf_iterator<char>(file),
-			std::istreambuf_iterator<char>() };
+			std::istreambuf_iterator<char>()
+		};
 		auto jsonStr = winrt::to_hstring(json);
 
 		auto rootObj = JsonObject::Parse(jsonStr);

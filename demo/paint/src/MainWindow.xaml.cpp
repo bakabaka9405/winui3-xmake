@@ -1,15 +1,12 @@
 #include "pch.h"
-#include "MainWindow.xaml.h"
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <winrt/Microsoft.Graphics.Canvas.Geometry.h>
-#include <winrt/Microsoft.UI.Input.h>
+#include "MainWindow.xaml.h"
 
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
 #endif
+
+namespace muxm = winrt::Microsoft::UI::Xaml::Media;
 
 namespace winrt::paint::implementation {
 
@@ -76,7 +73,8 @@ void MainWindow::PaintCanvas_PointerPressed(
 		m_pointerFilter.Reset();
 		m_currentStroke.points.push_back(m_pointerFilter.Step(
 			raw, std::chrono::steady_clock::now()));
-	} else {
+	}
+	else {
 		m_currentStroke.points.push_back(raw);
 	}
 
@@ -98,9 +96,11 @@ void MainWindow::PaintCanvas_PointerMoved(
 	if (m_currentStroke.tool != DrawingTool::Pen) {
 		if (m_currentStroke.points.empty()) {
 			m_currentStroke.points.push_back(pt);
-		} else if (m_currentStroke.points.size() == 1) {
+		}
+		else if (m_currentStroke.points.size() == 1) {
 			m_currentStroke.points.push_back(pt);
-		} else {
+		}
+		else {
 			m_currentStroke.points.back() = pt;
 		}
 
@@ -153,7 +153,8 @@ void MainWindow::PaintCanvas_PointerReleased(
 		if (dx * dx + dy * dy >= 4.0f) {
 			m_currentStroke.points.push_back(pt);
 		}
-	} else if (m_currentStroke.points.empty()) {
+	}
+	else if (m_currentStroke.points.empty()) {
 		m_currentStroke.points.push_back(pt);
 	}
 

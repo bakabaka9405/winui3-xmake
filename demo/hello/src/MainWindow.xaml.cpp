@@ -1,5 +1,6 @@
-#include "MainWindow.xaml.h"
 #include "pch.h"
+
+#include "MainWindow.xaml.h"
 
 #include <winrt/Microsoft.UI.Composition.SystemBackdrops.h>
 

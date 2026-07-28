@@ -4,210 +4,210 @@
 
 namespace winrt::gallery::implementation {
 struct ButtonPage : ButtonPageT<ButtonPage> {
-    ButtonPage();
+	ButtonPage();
 
-    //  Control event handlers 
-    void DemoButton_Click(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	//  Control event handlers
+	void DemoButton_Click(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void DemoRepeatButton_Click(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void DemoRepeatButton_Click(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    //  Control → Config reverse bindings 
-    void DemoCheckBox_Changed(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	//  Control → Config reverse bindings
+	void DemoCheckBox_Changed(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void DemoToggleSwitch_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void DemoToggleSwitch_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void DemoToggleButton_Changed(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void DemoToggleButton_Changed(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    //  Button property editors 
-    void EditorBtnContent_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	//  Button property editors
+	void EditorBtnContent_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorBtnWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorBtnWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorBtnEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorBtnEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorBtnVisibility_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorBtnVisibility_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    void EditorBtnCornerRadius_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorBtnCornerRadius_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorBtnFontSize_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorBtnFontSize_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorBtnAlignment_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorBtnAlignment_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    void EditorBtnTooltip_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	void EditorBtnTooltip_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    //  ToggleButton property editors 
-    void EditorToggleContent_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	//  ToggleButton property editors
+	void EditorToggleContent_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorToggleChecked_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorToggleChecked_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorToggleEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorToggleEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorToggleWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorToggleWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorToggleHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorToggleHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorToggleAlignment_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorToggleAlignment_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    //  SplitButton property editors 
-    void EditorSplitWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	//  SplitButton property editors
+	void EditorSplitWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorSplitHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorSplitHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorSplitEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorSplitEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    //  DropDownButton property editors 
-    void EditorDropWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	//  DropDownButton property editors
+	void EditorDropWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorDropHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorDropHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorDropEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorDropEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    //  RepeatButton property editors 
-    void EditorRepeatWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	//  RepeatButton property editors
+	void EditorRepeatWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorRepeatHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorRepeatHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorRepeatEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorRepeatEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorRepeatContent_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	void EditorRepeatContent_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorRepeatAlignment_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorRepeatAlignment_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    //  HyperlinkButton property editors 
-    void EditorHyperlinkWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	//  HyperlinkButton property editors
+	void EditorHyperlinkWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorHyperlinkHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorHyperlinkHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorHyperlinkEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorHyperlinkEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    //  CheckBox property editors 
-    void EditorCheckContent_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	//  CheckBox property editors
+	void EditorCheckContent_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorCheckChecked_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorCheckChecked_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    void EditorCheckThreeState_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorCheckThreeState_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorCheckEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorCheckEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorCheckWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorCheckWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorCheckFontSize_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorCheckFontSize_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    //  RadioButtons property editors 
-    void EditorRadioWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	//  RadioButtons property editors
+	void EditorRadioWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorRadioHeight_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorRadioHeight_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
-    void EditorRadioEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorRadioEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorRadioAlignment_SelectionChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
+	void EditorRadioAlignment_SelectionChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& args);
 
-    //  ToggleSwitch property editors 
-    void EditorSwitchHeader_TextChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
+	//  ToggleSwitch property editors
+	void EditorSwitchHeader_TextChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
 
-    void EditorSwitchOn_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorSwitchOn_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorSwitchEnabled_Toggled(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::RoutedEventArgs const& args);
+	void EditorSwitchEnabled_Toggled(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::RoutedEventArgs const& args);
 
-    void EditorSwitchWidth_ValueChanged(
-        Windows::Foundation::IInspectable const& sender,
-        Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
+	void EditorSwitchWidth_ValueChanged(
+		Windows::Foundation::IInspectable const& sender,
+		Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& args);
 
 private:
-    bool m_updatingButton{ false };
-    int32_t m_repeatCount{ 0 };
+	bool m_updatingButton{ false };
+	int32_t m_repeatCount{ 0 };
 };
 } // namespace winrt::gallery::implementation
 

@@ -1,5 +1,7 @@
-#include "ExplorerPage.xaml.h"
 #include "pch.h"
+
+#include "ExplorerPage.xaml.h"
+
 #include <sstream>
 
 #if __has_include("ExplorerPage.g.cpp")

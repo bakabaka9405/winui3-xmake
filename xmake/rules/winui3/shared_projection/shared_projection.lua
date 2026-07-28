@@ -1,7 +1,12 @@
--- 工具与 WinMD 解析均通过模块（winui3.tools / winui3.winmd.* / winui3.packages）。
+-- 共享 C++/WinRT 投影头生成实现
 --
+-- 工具与 WinMD 解析均通过模块（winui3.tools / winui3.winmd.* / winui3.packages）。
 -- WinMD 上下文由 winui3.winmd.context 持有，供下游规则复用。
 -- 共享投影头按拓扑序逐节点生成：每个节点 WinMD 作为 -in，已处理节点的 WinMD 作为 -ref。
+--
+-- before_prepare 在两种场景下调用：
+--   1. winui3.shared_projection 规则（普通目标）：生成共享投影头
+--   2. winui3.shared_projection.modules 目标（opt.modules_target = true）：生成共享 .ixx 模块
 
 
 local depend = import("core.project.depend")
@@ -9,9 +14,24 @@ local winmd_context = import("winui3.winmd.context")
 local option = import("core.base.option")
 local config = import("core.project.config")
 
-function on_prepare(target)
+
+local function _shared_winrt_dir()
+    return path.join(os.projectdir(), "build", ".gens", "shared", "generated", "winrt")
+end
+
+
+local function _generate(target)
     local shared = winmd_context.ensure(target)
     local graph_ctx = shared.graph
+    local shared_winrt_dir = _shared_winrt_dir()
+
+    local changed = option.get("rebuild") or false
+    if not changed then
+        local ixx_files = os.files(path.join(shared_winrt_dir, "*.ixx"))
+        if #ixx_files == 0 then
+            changed = true
+        end
+    end
 
     local tools = import("winui3.tools")()
 
@@ -63,7 +83,14 @@ function on_prepare(target)
     end, {
         files      = input_files,
         dependfile = path.join(config.builddir(), ".deps", "shared", "shared_projection.d"),
-        changed    = option.get("rebuild"),
+        changed    = changed,
     })
+end
 
+
+function before_prepare(target, opt)
+    opt = opt or {}
+    if opt.modules_target or target:rule("winui3.modules") == nil then
+        _generate(target)
+    end
 end

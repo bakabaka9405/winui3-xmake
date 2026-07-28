@@ -4,7 +4,7 @@
 -- 执行 XAML Compiler Pass 1（生成 .xbf）与 Pass 2（生成 .g.hpp / .g.cpp）。
 --
 -- 回调模型（C++/WinRT .g.cpp inclusion 模式）：
---   - before_build:  依赖跟踪 + XAML Pass 1（生成 .xbf）+ Pass 2（生成 .g.hpp / .g.cpp）
+--   - before_prepare_files: 生成 .xbf / .g.hpp / .g.cpp，供后续编译与模块扫描使用
 --   - .g.cpp 不编译为独立单元；由 *.xaml.cpp 和 XamlMetaDataProvider.cpp 通过 #include 包含
 --
 -- 依赖上游规则：
@@ -14,8 +14,9 @@
 
 rule("winui3.xaml")
     add_deps("winui3.env", "winui3.shared_projection", "winui3.idl")
+    add_orders("winui3.idl", "winui3.xaml")
     set_extensions(".xaml")
 
-    before_build(function (target)
-        import("xaml").before_build(target)
+    before_prepare_files(function (target, sourcebatch, opt)
+        import("xaml").before_prepare_files(target, sourcebatch, opt)
     end)

@@ -1,5 +1,6 @@
-#include "MediaPage.xaml.h"
 #include "pch.h"
+
+#include "MediaPage.xaml.h"
 
 #if __has_include("MediaPage.g.cpp")
 #include "MediaPage.g.cpp"

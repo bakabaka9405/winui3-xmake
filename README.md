@@ -49,13 +49,28 @@ target("demo.<name>")
     add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
-3. 在源码中通过 `#include "pch.h"` 引用共享预编译头。
+3. 普通目标在源码中通过 `#include "pch.h"` 引用共享预编译头。
 
 4. 使用 `xmake -y demo.<name>` 构建。
 
 > **注意：**
 > - `namespace` 是 `winui3.app` 的必需参数，通过 `set_values("winui3.namespace", ...)` 声明。
 > - `add_files` 需同时包含 `.cpp`、`.idl` 和 `.xaml` 三类文件。
+
+### 模块化 C++/WinRT 投影目标
+
+启用 C++ modules 的目标不直接包含文本投影头，而是由规则自动生成聚合模块，并由 `pch.h` 通过宏导入它。`demo.paint` 是当前示例：
+
+```lua
+target("demo.<name>")
+    add_rules("winui3.app", "winui3.modules")
+    set_values("winui3.namespace", "<namespace>")
+    add_rules("demo.common")
+    add_includedirs("src")
+    add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
+```
+
+`winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules`，并设置 `WINRT_ENABLE_LEGACY_COM` 和 `WINUI3_IMPORT_MODULE` 宏。普通目标与模块目标的手写 `.cpp` 均以 `#include "pch.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `pch.h` 进入模块前导分支并导入 `<namespace>.winrt`。
 
 ### 可选规则
 

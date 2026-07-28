@@ -1,10 +1,12 @@
 #pragma once
 
-#include <winrt/Microsoft.Graphics.Canvas.h>
-#include <winrt/Microsoft.Graphics.Canvas.UI.Xaml.h>
-
 #include "MainWindow.g.h"
 #include "PointerFilter.h"
+
+#include <winrt/Microsoft.Graphics.Canvas.Geometry.h>
+#include <winrt/Microsoft.Graphics.Canvas.UI.Xaml.h>
+#include <winrt/Microsoft.Graphics.Canvas.h>
+#include <winrt/Microsoft.UI.Input.h>
 
 namespace mgc = winrt::Microsoft::Graphics::Canvas;
 namespace mgcux = winrt::Microsoft::Graphics::Canvas::UI::Xaml;

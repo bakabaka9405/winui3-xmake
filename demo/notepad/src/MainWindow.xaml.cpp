@@ -1,5 +1,6 @@
-#include "MainWindow.xaml.h"
 #include "pch.h"
+
+#include "MainWindow.xaml.h"
 
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
@@ -45,7 +46,8 @@ void MainWindow::OnEditorSelectionChanged(
 		if (text[i] == L'\n') {
 			++line;
 			col = 1;
-		} else {
+		}
+		else {
 			++col;
 		}
 	}

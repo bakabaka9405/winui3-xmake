@@ -21,25 +21,78 @@ local function _idl_to_winmd(out_dir, idl_path, base_dir)
     return path.join(out_dir, idl_stem .. ".winmd")
 end
 
-function after_load(target)
-    target:add("files", path.join(target:autogendir({root = true}), "generated", "XamlMetaDataProvider.idl"), {always_added = true})
-    target:add("includedirs", path.join(target:autogendir({root = true}), "generated", "winrt"))
+local function _append_unique(result, seen, value)
+    if value and not seen[value] then
+        seen[value] = true
+        table.insert(result, value)
+    end
 end
 
--- 增量指纹跟踪 IDL 源、规则模块以及包/SDK 版本；输出必须包含 merged_winmd 与投影目录。
-function before_build_files(target, jobgraph, sourcebatch, opt)
+local function _shared_module_names()
+    local shared_winrt_dir = path.join(os.projectdir(), "build", ".gens", "shared", "generated", "winrt")
+    local result = {}
+    local seen = {}
+
+    _append_unique(result, seen, "winrt_base")
+    _append_unique(result, seen, "winrt_numerics")
+
+    local module_files = os.files(path.join(shared_winrt_dir, "*.ixx"))
+    table.sort(module_files)
+    for _, module_file in ipairs(module_files) do
+        _append_unique(result, seen, path.basename(module_file))
+    end
+
+    if #result == 2 then
+        raise("winui3.idl: shared projection modules were not generated before aggregate module creation.")
+    end
+
+    return result
+end
+
+local function _write_aggregate_module(module_file, import_name, namespace)
+    local lines = {"export module " .. import_name .. ";", ""}
+
+    table.insert(lines, "export import std;")
+    table.insert(lines, "")
+
+    for _, module_name in ipairs(_shared_module_names()) do
+        table.insert(lines, "export import " .. module_name .. ";")
+    end
+
+    table.insert(lines, "")
+    table.insert(lines, "export import winrt." .. namespace .. ";")
+    table.insert(lines, "")
+
+    os.mkdir(path.directory(module_file))
+    utils.write_file_if_changed(module_file, table.concat(lines, "\n"))
+end
+
+function after_load(target)
+    local generated_dir = path.join(target:autogendir({root = true}), "generated")
+
+    target:add("files", path.join(generated_dir, "XamlMetaDataProvider.idl"), {always_added = true})
+    target:add("includedirs", path.join(generated_dir, "winrt"))
+    if target:rule("winui3.modules") then
+        local namespace = target:values("winui3.namespace")
+        target:add("files", path.join(generated_dir, "winrt", "winrt." .. namespace .. ".ixx"), {always_added = true})
+        target:add("files", path.join(generated_dir, namespace .. ".winrt.ixx"), {always_added = true})
+    end
+end
+
+function before_prepare_files(target, sourcebatch, opt)
+    local idl_files = sourcebatch.sourcefiles
     local shared = winmd_context.ensure(target)
 
     local namespace = target:values("winui3.namespace")
+    local is_modules = target:rule("winui3.modules") ~= nil
+    local import_name = is_modules and (namespace .. ".winrt") or nil
     local autogen_root  = target:autogendir({root = true})
     local generated_dir = path.join(autogen_root, "generated")
     local unmerged_dir = path.join(autogen_root, "winmd_unmerged")
     local merged_dir = path.join(autogen_root, "winmd_merged")
-    local merged_winmd = path.join(autogen_root, "winmd_merged", namespace .. ".winmd")
-    local projection_dir = path.join(generated_dir, "winrt")
-
-    local idl_batch = target:sourcebatches()["winui3.idl"]
-    local idl_files = idl_batch.sourcefiles
+    local merged_winmd = path.join(merged_dir, namespace .. ".winmd")
+    local module_file = path.join(generated_dir, "winrt", "winrt." .. namespace .. ".ixx")
+    local aggregate_module_file = is_modules and path.join(generated_dir, namespace .. ".winrt.ixx") or nil
 
     local dependfile = path.join(target:dependir({root = true}), "idl.d")
 
@@ -65,10 +118,6 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
         local sdk_include_winrt  = path.join(sdk_include_dir, "winrt")
 
         local ref_winmds = shared.ref_winmds
-
-        os.mkdir(unmerged_dir)
-        os.mkdir(merged_dir)
-        os.mkdir(generated_dir)
 
         for _, idl_path in ipairs(idl_files) do
             local out_winmd = _idl_to_winmd(unmerged_dir, idl_path, os.projectdir())
@@ -140,11 +189,14 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
             "-out", generated_dir,
             "-comp",
             "-name", namespace,
-            "-pch", "pch.h",
+            "-pch", ".",
             "-prefix",
             "-optimize",
             "-overwrite",
         }
+        if import_name then
+            table.insert(cppwinrt_args, "-modules")
+        end
         for _, ref in ipairs(ref_winmds) do
             table.insert(cppwinrt_args, "-ref")
             table.insert(cppwinrt_args, ref)
@@ -157,10 +209,13 @@ function before_build_files(target, jobgraph, sourcebatch, opt)
             os.vrunv(cppwinrt_exe, cppwinrt_args, {envs = target:toolchain("msvc"):runenvs()})
         end
 
+        if import_name then
+            _write_aggregate_module(aggregate_module_file, import_name, namespace)
+        end
+
     end, {
         files      = idl_files,
         dependfile = dependfile,
-        changed    = option.get("rebuild"),
+        changed    = option.get("rebuild")
     })
-
 end

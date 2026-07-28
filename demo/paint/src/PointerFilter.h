@@ -1,8 +1,6 @@
 #pragma once
 
-#include <chrono>
-
-#include <winrt/Windows.Foundation.h>
+#include "pch.h"
 
 namespace winrt::paint::implementation {
 

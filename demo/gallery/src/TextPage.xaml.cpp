@@ -1,5 +1,6 @@
-#include "TextPage.xaml.h"
 #include "pch.h"
+
+#include "TextPage.xaml.h"
 
 #if __has_include("TextPage.g.cpp")
 #include "TextPage.g.cpp"

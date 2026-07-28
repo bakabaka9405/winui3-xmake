@@ -1,7 +1,8 @@
-#include "App.xaml.h"
-#include "MainWindow.xaml.h"
 #include "pch.h"
 
+#include "App.xaml.h"
+
+#include "MainWindow.xaml.h"
 
 namespace winrt::paint::implementation {
 App::App() {

@@ -2,7 +2,7 @@
 --
 -- 职责：
 --   1. 声明 WinMD 节点规格（platform / webview2 / appsdk / win2d）。
---   2. 根据目标规则过滤启用节点。
+--   2. 收集所有 WinMD 节点。
 --   3. 构造有向图并调用 topo_sort() 生成拓扑序。
 --   4. 基于拓扑序生成 ref_winmds 与 metadata_dirs。
 --
@@ -17,7 +17,6 @@ local NODE_SPECS = {
     {
         id      = "platform",
         deps    = {},
-        enabled = function(target) return true end,
         collect = function(target)
             return import("winui3.winmd.platform").collect()
         end,
@@ -25,7 +24,6 @@ local NODE_SPECS = {
     {
         id      = "webview2",
         deps    = {"platform"},
-        enabled = function(target) return true end,
         collect = function(target)
             return import("winui3.winmd.webview2").collect()
         end,
@@ -33,7 +31,6 @@ local NODE_SPECS = {
     {
         id      = "appsdk",
         deps    = {"platform", "webview2"},
-        enabled = function(target) return true end,
         collect = function(target)
             return import("winui3.winmd.appsdk").collect()
         end,
@@ -41,9 +38,6 @@ local NODE_SPECS = {
     {
         id      = "win2d",
         deps    = {"platform", "webview2", "appsdk"},
-        enabled = function(target)
-            return target:rule("win2d") ~= nil
-        end,
         collect = function(target)
             return import("winui3.winmd.win2d").collect()
         end,
@@ -80,14 +74,12 @@ function build(target)
     local dag = graph.new(true)
     local by_id = {}
 
-    -- 收集启用的节点并注册顶点。
+    -- 收集所有节点并注册顶点。
     for _, spec in ipairs(NODE_SPECS) do
-        if spec.enabled(target) then
-            local active = table.clone(spec)
-            active.winmds = active.collect(target)
-            by_id[active.id] = active
-            dag:add_vertex(active.id)
-        end
+        local active = table.clone(spec)
+        active.winmds = active.collect(target)
+        by_id[active.id] = active
+        dag:add_vertex(active.id)
     end
 
     -- 注册依赖边。

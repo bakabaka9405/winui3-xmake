@@ -1,3 +1,4 @@
+local utils = import("utils")
 local task = import("core.project.task")
 
 function on_load(target)
@@ -5,6 +6,9 @@ function on_load(target)
     target:set("targetdir", path.join(target:targetdir(), target:name()))
     target:set("rundir", target:targetdir())
     target:set("policy", "build.across_targets_in_parallel", false)
+end
+
+function before_prepare(target)
 end
 
 function on_config(target)
@@ -26,7 +30,14 @@ function on_config(target)
         end
     end
 
-    target:add("includedirs", path.join(target:autogendir({root = true}), "generated"))
+    local autogen_root = target:autogendir({root = true})
+    local generated_dir = path.join(autogen_root, "generated")
+
+    os.mkdir(generated_dir)
+    os.mkdir(path.join(autogen_root, "winmd_unmerged"))
+    os.mkdir(path.join(autogen_root, "winmd_merged"))
+
+    target:add("includedirs", generated_dir)
     target:add("includedirs", path.join(os.projectdir(), "build", ".gens", "shared", "generated"))
 
     target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8")

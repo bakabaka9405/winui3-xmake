@@ -1,5 +1,6 @@
-#include "SelectionPage.xaml.h"
 #include "pch.h"
+
+#include "SelectionPage.xaml.h"
 
 #if __has_include("SelectionPage.g.cpp")
 #include "SelectionPage.g.cpp"

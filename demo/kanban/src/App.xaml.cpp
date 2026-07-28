@@ -1,6 +1,8 @@
-#include "App.xaml.h"
-#include "MainWindow.xaml.h"
 #include "pch.h"
+
+#include "App.xaml.h"
+
+#include "MainWindow.xaml.h"
 
 #if __has_include("App.xaml.g.cpp")
 #include "App.xaml.g.cpp"

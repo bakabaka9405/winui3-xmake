@@ -1,7 +1,6 @@
-#include <demo/utils/DebugTrace.h>
-
 #include <chrono>
 #include <cstdio>
+#include <demo/utils/DebugTrace.h>
 #include <windows.h>
 
 namespace demo::utils::debug_trace::detail {
