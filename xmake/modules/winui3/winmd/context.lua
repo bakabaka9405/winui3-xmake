@@ -2,16 +2,18 @@
 --
 -- 职责：
 --   - import 时立即初始化平台状态（SDK 路径、平台 WinMD）
---   - 调用 winui3.winmd.graph 构造目标级图上下文
---   - 校验 AppSDK / WebView2 WinMD 非空
---   - 按 target:fullname() 记忆化，每个目标仅计算一次
+--   - 调用 winui3.winmd.graph 构造并校验目标级图上下文
+--   - 按 target:fullname() 记忆化
 --   - 返回供所有下游规则消费的统一上下文表
+--
+-- 共享投影按 WinMD 节点分目录输出，使 C++ modules 目标可以按依赖图复用，
+-- 互不携带无关节点的模块。
 
 local winmd_graph   = import("winui3.winmd.graph")
 local platform_mod  = import("winui3.winmd.platform")
 local sdk_mod       = import("winui3.sdk")
 
-local _shared_dir = path.join(os.projectdir(), "build", ".gens", "shared", "generated")
+local _shared_root = path.join(os.projectdir(), "build", ".gens", "shared")
 local _target_contexts = {}
 
 local _sdk_root, _sdk_version, _platform_winmds
@@ -24,31 +26,40 @@ do
     end
 end
 
+--- 某个 WinMD 节点的共享投影生成目录。
+function node_dir(node_id)
+    return path.join(_shared_root, node_id, "generated")
+end
+
+--- 某个 WinMD 节点的共享投影模块目录。
+function node_winrt_dir(node_id)
+    return path.join(node_dir(node_id), "winrt")
+end
+
 --- 为给定 target 构建并缓存 WinMD 上下文。
---- 返回的表包含所有下游规则所需字段，后续调用直接返回缓存值。
 function ensure(target)
-    local target_key = target:fullname()
-    if _target_contexts[target_key] then
-        return _target_contexts[target_key]
+    local cache_key = target:fullname()
+    if _target_contexts[cache_key] then
+        return _target_contexts[cache_key]
     end
 
     local graph_ctx = winmd_graph.ensure(target)
 
-    if #winmd_graph.get_winmds(graph_ctx, "appsdk") == 0 then
-        raise("winui3.winmd.context: WinAppSDK WinMD 列表为空。")
-    end
-    if #winmd_graph.get_winmds(graph_ctx, "webview2") == 0 then
-        raise("winui3.winmd.context: WebView2 WinMD 未收集。")
+    -- 按拓扑序给出节点投影目录，供 includedirs 与模块扫描消费。
+    local node_dirs = {}
+    for _, node_id in ipairs(graph_ctx.order) do
+        table.insert(node_dirs, node_dir(node_id))
     end
 
-    _target_contexts[target_key] = {
-        shared_dir    = _shared_dir,
+    _target_contexts[cache_key] = {
         sdk_root      = _sdk_root,
         sdk_version   = _sdk_version,
         graph         = graph_ctx,
+        nodes         = graph_ctx.order,
+        node_dirs     = node_dirs,
         ref_winmds    = graph_ctx.ref_winmds,
         metadata_dirs = graph_ctx.metadata_dirs,
     }
 
-    return _target_contexts[target_key]
+    return _target_contexts[cache_key]
 end

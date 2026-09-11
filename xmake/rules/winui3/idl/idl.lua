@@ -28,18 +28,21 @@ local function _append_unique(result, seen, value)
     end
 end
 
-local function _shared_module_names()
-    local shared_winrt_dir = path.join(os.projectdir(), "build", ".gens", "shared", "generated", "winrt")
+-- 仅枚举目标实际激活的 WinMD 节点投影模块，避免导入无关模块。
+local function _shared_module_names(shared)
     local result = {}
     local seen = {}
 
     _append_unique(result, seen, "winrt_base")
     _append_unique(result, seen, "winrt_numerics")
 
-    local module_files = os.files(path.join(shared_winrt_dir, "*.ixx"))
-    table.sort(module_files)
-    for _, module_file in ipairs(module_files) do
-        _append_unique(result, seen, path.basename(module_file))
+    for _, node_id in ipairs(shared.nodes) do
+        local module_files = os.files(path.join(
+            winmd_context.node_winrt_dir(node_id), "*.ixx"))
+        table.sort(module_files)
+        for _, module_file in ipairs(module_files) do
+            _append_unique(result, seen, path.basename(module_file))
+        end
     end
 
     if #result == 2 then
@@ -49,13 +52,13 @@ local function _shared_module_names()
     return result
 end
 
-local function _write_aggregate_module(module_file, import_name, namespace)
+local function _write_aggregate_module(module_file, import_name, namespace, shared)
     local lines = {"export module " .. import_name .. ";", ""}
 
     table.insert(lines, "export import std;")
     table.insert(lines, "")
 
-    for _, module_name in ipairs(_shared_module_names()) do
+    for _, module_name in ipairs(_shared_module_names(shared)) do
         table.insert(lines, "export import " .. module_name .. ";")
     end
 
@@ -210,7 +213,7 @@ function before_prepare_files(target, sourcebatch, opt)
         end
 
         if import_name then
-            _write_aggregate_module(aggregate_module_file, import_name, namespace)
+            _write_aggregate_module(aggregate_module_file, import_name, namespace, shared)
         end
 
     end, {

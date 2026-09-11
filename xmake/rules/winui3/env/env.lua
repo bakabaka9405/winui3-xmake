@@ -38,7 +38,12 @@ function on_config(target)
     os.mkdir(path.join(autogen_root, "winmd_merged"))
 
     target:add("includedirs", generated_dir)
-    target:add("includedirs", path.join(os.projectdir(), "build", ".gens", "shared", "generated"))
+
+    -- 共享投影按 WinMD 节点分目录，仅加入目标实际激活的节点。
+    local winmd_context = import("winui3.winmd.context")
+    for _, node_dir in ipairs(winmd_context.ensure(target).node_dirs) do
+        target:add("includedirs", node_dir)
+    end
 
     target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8")
 

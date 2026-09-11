@@ -14,7 +14,7 @@ function before_build(target)
     local config_xml_path = path.absolute(path.join(generated_dir, "priconfig.xml"))
     local pri_output      = path.absolute(path.join(generated_dir, "resources.pri"))
 
-    local xbf_files = os.files(path.join(generated_dir, "*.xbf"))
+    local xbf_files = os.files(path.join(generated_dir, "**.xbf"))
 
     depend.on_changed(function()
         if not xbf_files or #xbf_files == 0 then

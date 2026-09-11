@@ -70,7 +70,7 @@ target("demo.<name>")
     add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
-`winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules`，并设置 `WINRT_ENABLE_LEGACY_COM` 和 `WINUI3_IMPORT_MODULE` 宏。普通目标与模块目标的手写 `.cpp` 均以 `#include "pch.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `pch.h` 进入模块前导分支并导入 `<namespace>.winrt`。
+`winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules.appsdk`；该目标通过节点依赖带入 platform 与 WebView2 模块，应用启用 `win2d` 或 `winuiedit` 时再追加对应节点模块目标。规则同时设置 `WINRT_ENABLE_LEGACY_COM` 和 `WINUI3_IMPORT_MODULE` 宏。普通目标与模块目标的手写 `.cpp` 均以 `#include "pch.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `pch.h` 进入模块前导分支并导入 `<namespace>.winrt`。
 
 ### 可选规则
 
@@ -113,6 +113,7 @@ add_rules("win2d")
 | `demo.gallery` | 控件展示，覆盖按钮、选择、文本、媒体、导航和菜单等场景 |
 | `demo.camera` | 摄像头预览，枚举视频采集设备并通过 `MediaCapture` 显示预览 |
 | `demo.explorer` | 文件资源管理器 |
+| `demo.markdown` | Markdown 编辑与原生预览，使用 MD4C callback parser、WinUIEdit、MicroTeX 和 WinUI 3 控件渲染 |
 | `demo.paint` | 画布绘图，基于 Win2D `CanvasControl` 实现自由绘制 |
 | `demo.webview` | WebView2 集成，在 WinUI 3 窗口中嵌入 Web 前端内容 |
 | `demo.xaml-studio` | XAML 编辑器与实时预览，集成 Monaco 与 `XamlReader.Load` |
@@ -120,7 +121,8 @@ add_rules("win2d")
 ## 技术栈
 
 - C++20、xmake（Windows x64）
-- WinUI 3 / Windows App SDK 2.0.1
-- C++/WinRT 2.0、WIL
+- WinUI 3 / Windows App SDK 2.4.0
+- C++/WinRT 3.0、WIL
 - WebView2 1.0（`demo.webview`、`demo.xaml-studio`）
-- Win2D 1.4（`demo.paint`）
+- Win2D 1.4（`demo.paint`、`demo.markdown`）
+- md4c 2024.02.25、WinUIEdit 0.0.5-prerelease、MicroTeX（固定 commit；Win2D 图形与 DirectWrite 文本后端；`demo.markdown`）

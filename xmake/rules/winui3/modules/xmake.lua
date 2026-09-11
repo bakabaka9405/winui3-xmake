@@ -1,6 +1,6 @@
 -- winui3.modules 规则：为应用目标启用 C++ modules 模式
 --
--- 设置 build.c++.modules 策略，依赖 winui3.shared_projection.modules 共享模块目标，
+-- 设置 build.c++.modules 策略，根据应用直接激活的 WinMD 根节点挂载共享模块目标，
 -- 并在 on_config 中设置 WINRT_ENABLE_LEGACY_COM 和 WINUI3_IMPORT_MODULE 宏。
 --
 -- 使用方式：

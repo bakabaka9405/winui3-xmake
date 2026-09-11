@@ -1,6 +1,8 @@
 #pragma once
 
-#if defined(WINUI3_IMPORT_MODULE) && !defined(WINUI3_CLANGD_TEXT_PROJECTION)
+// 单个编译单元在包含本头前定义 WINUI3_NO_MODULE，即可退出模块模式改用文本投影。
+// 适用于必须文本引入 STL 的第三方适配层，以及无法消费 MSVC BMI 的 clangd（由 .clangd 注入）。
+#if defined(WINUI3_IMPORT_MODULE) && !defined(WINUI3_NO_MODULE)
 
 #include <cstdio>
 #include <unknwn.h>

@@ -77,7 +77,7 @@ Diagnostics:
         google-default-arguments,
         google-explicit-constructor,
         google-runtime-operator,
-        hicpp-exception-baseclass,
+        # hicpp-exception-baseclass,
         hicpp-multiway-paths-covered,
         #hicpp-signed-bitwise,
         misc-misplaced-const,
@@ -171,7 +171,7 @@ CompileFlags:
       -Wno-c++98-compat,
       -std:c++20,
       # -DMR_CLANGD,
-      -DWINUI3_CLANGD_TEXT_PROJECTION=1,
+      -DWINUI3_NO_MODULE=1,
       -UWINRT_ENABLE_LEGACY_COM,
       -UWINUI3_IMPORT_MODULE,
     ]

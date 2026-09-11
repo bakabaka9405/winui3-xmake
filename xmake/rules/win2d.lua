@@ -7,6 +7,16 @@
 --     add_rules("win2d")
 
 rule("win2d")
+    on_config(function (target)
+        local packages = import("winui3.packages")
+        local include_dir = path.join(
+            packages.package_root("Microsoft.Graphics.Win2D"),
+            "include"
+        )
+
+        target:add("includedirs", include_dir, path.join(include_dir, target:arch()))
+    end)
+
     after_build(function (target)
         local packages = import("winui3.packages")
 
@@ -14,7 +24,7 @@ rule("win2d")
 
         local canvas_src = path.join(
             win2d_root,
-            "runtimes", "win-x64", "native",
+            "runtimes", "win-" .. target:arch(), "native",
             "Microsoft.Graphics.Canvas.dll"
         )
 
