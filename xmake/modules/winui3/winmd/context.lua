@@ -63,3 +63,10 @@ function ensure(target)
 
     return _target_contexts[cache_key]
 end
+
+--- 目标的合并 WinMD 输出路径（本地程序集）。
+function local_assembly_path(target)
+    local autogen_root = target:autogendir({root = true})
+    local namespace = target:values("winui3.namespace") or target:name()
+    return path.join(autogen_root, "winmd_merged", namespace .. ".winmd")
+end

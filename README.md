@@ -19,6 +19,9 @@ xmake -y demo.hello
 
 # 运行
 xmake run demo.hello
+
+# 导出 XAML LSP 元数据清单（.xmake/xaml-lsp.json）
+xmake xaml-lsp
 ```
 
 ### 构建模式

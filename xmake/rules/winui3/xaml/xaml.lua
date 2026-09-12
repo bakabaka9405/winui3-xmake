@@ -121,7 +121,7 @@ function before_prepare_files(target, sourcebatch, opt)
         io.writefile(path.join(generated_dir, "pass1.json"), json_mod.encode(pass1_data))
         os.vrunv(xaml_compiler, {path.join(generated_dir, "pass1.json"), path.join(generated_dir, "pass1_out.json")}, {envs = target:toolchain("msvc"):runenvs()})
 
-        local merged_winmd = path.join(autogen_root, "winmd_merged", namespace .. ".winmd")
+        local merged_winmd = winmd_context.local_assembly_path(target)
         if not os.isfile(merged_winmd) then
             raise(string.format(
                 "winui3.xaml: Phase 7 (XAML Pass 2) requires merged WinMD not found: %s",
