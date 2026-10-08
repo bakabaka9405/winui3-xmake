@@ -42,9 +42,9 @@ winrt::Windows::Foundation::IAsyncAction MainWindow::InitializeWebView() {
 	}
 
 	// Resolve web/ directory relative to the executable
-	WCHAR exePath[MAX_PATH];
-	GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-	auto webDir = std::filesystem::path(std::wstring(exePath)).parent_path() / L"web";
+	char exePath[MAX_PATH];
+	GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+	auto webDir = std::filesystem::path(exePath).parent_path() / "web";
 
 	// Map virtual host to web/ directory (avoids file:/// cross-origin issues)
 	EditorWebView().CoreWebView2().SetVirtualHostNameToFolderMapping(
