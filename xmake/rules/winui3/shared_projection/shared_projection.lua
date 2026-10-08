@@ -80,6 +80,23 @@ local function _generate_node(target, graph_ctx, node_id, opt)
         table.insert(args, out_dir)
         os.vrunv(tools.cppwinrt, args)
 
+        -- Clang 的模块导入方需要可见的原生声明。
+        if node_id == "platform" then
+            local base_file = path.join(winrt_dir, "base.h")
+            local base_content, base_count = io.readfile(base_file):gsub('extern "C"(%s*{)',
+                '#ifdef WINRT_IMPL_BUILD_MODULE\nexport\n#endif\nextern "C"%1', 1)
+            assert(base_count == 1, "C++/WinRT base.h native declaration block not found")
+            io.writefile(base_file, base_content)
+
+            if opt.modules then
+                local foundation_file = path.join(winrt_dir, "winrt.Windows.Foundation.ixx")
+                local foundation_content, foundation_count = io.readfile(foundation_file):gsub("module;",
+                    "module;\n#include <guiddef.h>", 1)
+                assert(foundation_count == 1, "C++/WinRT Foundation global module fragment not found")
+                io.writefile(foundation_file, foundation_content)
+            end
+        end
+
         -- cppwinrt -modules 每次都会生成 winrt_base / winrt_numerics；各节点分别编译时会重复定义同名模块。
         -- 所有其他节点都依赖 platform，因此仅保留 platform 的副本，由其向下游提供这两个基础 BMI。
         if opt.modules and node_id ~= "platform" then

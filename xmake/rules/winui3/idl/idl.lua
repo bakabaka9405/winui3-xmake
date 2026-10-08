@@ -78,7 +78,7 @@ function after_load(target)
     if target:rule("winui3.modules") then
         local namespace = target:values("winui3.namespace")
         target:add("files", path.join(generated_dir, "winrt", "winrt." .. namespace .. ".ixx"), {always_added = true})
-        target:add("files", path.join(generated_dir, namespace .. ".winrt.ixx"), {always_added = true})
+        target:add("files", path.join(generated_dir, namespace .. ".winrt.cppm"), {always_added = true})
     end
 end
 
@@ -94,8 +94,7 @@ function before_prepare_files(target, sourcebatch, opt)
     local unmerged_dir = path.join(autogen_root, "winmd_unmerged")
     local merged_winmd = winmd_context.local_assembly_path(target)
     local merged_dir = path.directory(merged_winmd)
-    local module_file = path.join(generated_dir, "winrt", "winrt." .. namespace .. ".ixx")
-    local aggregate_module_file = is_modules and path.join(generated_dir, namespace .. ".winrt.ixx") or nil
+    local aggregate_module_file = is_modules and path.join(generated_dir, namespace .. ".winrt.cppm") or nil
 
     local dependfile = path.join(target:dependir({root = true}), "idl.d")
 

@@ -2,7 +2,7 @@
 
 #include "MainWindow.xaml.h"
 
-#include "MarkdownRenderer.h"
+import markdown.renderer;
 
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"

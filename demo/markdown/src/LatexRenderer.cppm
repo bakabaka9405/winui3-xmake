@@ -1,32 +1,34 @@
 module;
 
-// MicroTeX 头会再次包含 STL，与 import std 冲突；在包含 pch.h 前退出模块模式
-#ifdef WINUI3_IMPORT_MODULE
-#undef WINUI3_IMPORT_MODULE
-#endif
-#include "pch.h"
+#include <windows.h>
+#include <unknwn.h>
 
-#include <filesystem>
+#undef GetGlyphIndices
+
 #include <latex.h>
-#include <limits>
-#include <memory>
 #include <render.h>
-#include <string>
-#include <vector>
-#include <winrt/Microsoft.Graphics.Canvas.Brushes.h>
-#include <winrt/Microsoft.Graphics.Canvas.Geometry.h>
-#include <winrt/Microsoft.Graphics.Canvas.Text.h>
-#include <winrt/Microsoft.Graphics.Canvas.UI.Xaml.h>
-#include <winrt/Microsoft.Graphics.Canvas.h>
-#include <winrt/Windows.UI.Text.h>
-#include <winrt/Windows.UI.ViewManagement.h>
 
 export module markdown.latex;
 
+import std;
+import winrt_numerics;
+import winrt.Windows.Foundation;
+import winrt.Microsoft.Graphics.Canvas;
+import winrt.Microsoft.Graphics.Canvas.Brushes;
+import winrt.Microsoft.Graphics.Canvas.Geometry;
+import winrt.Microsoft.Graphics.Canvas.Text;
+import winrt.Microsoft.Graphics.Canvas.UI.Xaml;
+import winrt.Microsoft.UI.Xaml;
+import winrt.Microsoft.UI.Xaml.Controls;
+import winrt.Windows.UI;
+import winrt.Windows.UI.Text;
+import winrt.Windows.UI.ViewManagement;
+
 namespace {
 
+using winrt::Windows::Foundation::Numerics::float3x2;
+
 namespace canvas = winrt::Microsoft::Graphics::Canvas;
-namespace canvas_text = canvas::Text;
 
 struct MicroTeXContext final {
 	std::filesystem::path resourceRoot;
@@ -49,12 +51,12 @@ struct MicroTeXContext final {
 	}
 };
 
-MicroTeXContext& context() {
-	static MicroTeXContext value;
-	return value;
+MicroTeXContext& getMicroTeXContext() {
+	static MicroTeXContext ctx;
+	return ctx;
 }
 
-std::wstring family_name(canvas_text::CanvasFontFace const& face) {
+std::wstring getFontFaceFamilyName(canvas::Text::CanvasFontFace const& face) {
 	auto const names = face.FamilyNames();
 	if (names.Size() == 0) {
 		throw winrt::hresult_invalid_argument(L"字体文件未提供字体族。");
@@ -65,15 +67,15 @@ std::wstring family_name(canvas_text::CanvasFontFace const& face) {
 	return std::wstring(names.First().Current().Value());
 }
 
-class FontBackend final : public tex::Font {
+class FontWrapper final : public tex::Font {
 	std::wstring family;
 	winrt::hstring fileUri;
 	int style;
 	float size;
-	canvas_text::CanvasFontFace face;
+	canvas::Text::CanvasFontFace face;
 
 public:
-	FontBackend(std::wstring family, winrt::hstring fileUri, int style, float size, canvas_text::CanvasFontFace face)
+	FontWrapper(std::wstring family, winrt::hstring fileUri, int style, float size, canvas::Text::CanvasFontFace face)
 		: family(std::move(family)), fileUri(std::move(fileUri)), style(style), size(size), face(std::move(face)) {}
 
 	float getSize() const override {
@@ -82,13 +84,13 @@ public:
 
 	tex::sptr<tex::Font> deriveFont(int derivedStyle) const override {
 		if (!fileUri.empty()) {
-			return std::make_shared<FontBackend>(family, fileUri, derivedStyle, size, face);
+			return std::make_shared<FontWrapper>(family, fileUri, derivedStyle, size, face);
 		}
 		return tex::Font::_create(winrt::to_string(winrt::hstring(family)), derivedStyle, size);
 	}
 
 	bool operator==(tex::Font const& other) const override {
-		auto const* backend = dynamic_cast<FontBackend const*>(&other);
+		auto const* backend = dynamic_cast<FontWrapper const*>(&other);
 		return backend && size == backend->size && style == backend->style && face == backend->face;
 	}
 
@@ -96,28 +98,26 @@ public:
 		return !(*this == other);
 	}
 
-	canvas_text::CanvasTextFormat text_format() const {
-		auto format = canvas_text::CanvasTextFormat();
+	canvas::Text::CanvasTextFormat text_format() const {
+		auto format = canvas::Text::CanvasTextFormat();
 		format.FontFamily(fileUri.empty() ? winrt::hstring(family) : fileUri + L"#" + family);
 		format.FontSize(size);
 		format.FontWeight(style & tex::BOLD ? winrt::Windows::UI::Text::FontWeights::Bold() : winrt::Windows::UI::Text::FontWeights::Normal());
 		format.FontStyle(style & tex::ITALIC ? winrt::Windows::UI::Text::FontStyle::Italic : winrt::Windows::UI::Text::FontStyle::Normal);
 		format.FontStretch(winrt::Windows::UI::Text::FontStretch::Normal);
-		format.WordWrapping(canvas_text::CanvasWordWrapping::NoWrap);
+		format.WordWrapping(canvas::Text::CanvasWordWrapping::NoWrap);
 		return format;
 	}
 
-	canvas_text::CanvasFontFace const& font_face() const { return face; }
+	canvas::Text::CanvasFontFace const& font_face() const { return face; }
 };
-
-class Win2DTextLayout;
 
 class Win2DGraphics final : public tex::Graphics2D {
 	canvas::CanvasDrawingSession session;
 	tex::color color = tex::black;
 	tex::Stroke stroke;
-	tex::Font const* font{};
-	winrt::Windows::Foundation::Numerics::float3x2 transform{ 1, 0, 0, 1, 0, 0 };
+	FontWrapper const* font{};
+	float3x2 transform{ 1, 0, 0, 1, 0, 0 };
 	float scaleX = 1;
 	float scaleY = 1;
 
@@ -146,7 +146,7 @@ class Win2DGraphics final : public tex::Graphics2D {
 
 public:
 	explicit Win2DGraphics(canvas::CanvasDrawingSession const& drawingSession) : session(drawingSession) {
-		session.TextAntialiasing(canvas_text::CanvasTextAntialiasing::Grayscale);
+		session.TextAntialiasing(canvas::Text::CanvasTextAntialiasing::Grayscale);
 	}
 
 	void setColor(tex::color value) override { color = value; }
@@ -155,15 +155,21 @@ public:
 	tex::Stroke const& getStroke() const override { return stroke; }
 	void setStrokeWidth(float value) override { stroke.lineWidth = value; }
 	tex::Font const* getFont() const override { return font; }
-	void setFont(tex::Font const* value) override { font = value; }
+	void setFont(tex::Font const* value) override {
+		auto const* backend = dynamic_cast<FontWrapper const*>(value);
+		if (!backend) {
+			throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
+		}
+		font = backend;
+	}
 
 	void translate(float x, float y) override {
-		transform = winrt::Windows::Foundation::Numerics::float3x2{ 1, 0, 0, 1, x, y } * transform;
+		transform = float3x2{ 1, 0, 0, 1, x, y } * transform;
 		update_transform();
 	}
 
 	void scale(float x, float y) override {
-		transform = winrt::Windows::Foundation::Numerics::float3x2{ x, 0, 0, y, 0, 0 } * transform;
+		transform = float3x2{ x, 0, 0, y, 0, 0 } * transform;
 		scaleX *= x;
 		scaleY *= y;
 		update_transform();
@@ -174,7 +180,7 @@ public:
 	void rotate(float angle, float x, float y) override {
 		auto const sine = std::sin(angle);
 		auto const cosine = std::cos(angle);
-		transform = winrt::Windows::Foundation::Numerics::float3x2{
+		transform = float3x2{
 			cosine, sine, -sine, cosine, x - x * cosine + y * sine, y - x * sine - y * cosine
 		} * transform;
 		update_transform();
@@ -212,7 +218,7 @@ public:
 		session.FillRoundedRectangle(x, y, width, height, radiusX, radiusY, to_color(color));
 	}
 
-	void drawTextLayout(canvas_text::CanvasTextLayout const& layout, float x, float y) {
+	void drawTextLayout(canvas::Text::CanvasTextLayout const& layout, float x, float y) {
 		auto const lines = layout.LineMetrics();
 		if (lines.empty()) {
 			return;
@@ -222,10 +228,10 @@ public:
 };
 
 class Win2DTextLayout final : public tex::TextLayout {
-	canvas_text::CanvasTextLayout layout;
+	canvas::Text::CanvasTextLayout layout;
 
 public:
-	Win2DTextLayout(std::wstring const& source, FontBackend const& font)
+	Win2DTextLayout(std::wstring const& source, FontWrapper const& font)
 		: layout(canvas::CanvasDevice::GetSharedDevice(), source, font.text_format(),
 				 std::numeric_limits<float>::max(), std::numeric_limits<float>::max()) {}
 
@@ -240,95 +246,90 @@ public:
 	}
 
 	void draw(tex::Graphics2D& graphics, float x, float y) override {
-		auto* win2d = dynamic_cast<Win2DGraphics*>(&graphics);
-		if (!win2d) {
-			throw winrt::hresult_invalid_argument(L"文本布局需要 Win2D 图形后端。");
+		try {
+			auto& win2d = dynamic_cast<Win2DGraphics&>(graphics);
+			win2d.drawTextLayout(layout, x, y);
 		}
-		win2d->drawTextLayout(layout, x, y);
+		catch (const std::bad_cast&) {
+			throw winrt::hresult_invalid_argument(L"Need Win2D Graphics Backend");
+		}
 	}
 };
 
 void Win2DGraphics::drawChar(wchar_t character, float x, float y) {
-	auto const* backendFont = dynamic_cast<FontBackend const*>(font);
-	if (!backendFont) {
-		throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
-	}
-
 	std::uint32_t const codepoint = character;
-	auto const indices = backendFont->font_face().GetGlyphIndices({ &codepoint, 1 });
+	auto const indices = font->font_face().GetGlyphIndices({ &codepoint, 1 });
 	if (indices.empty()) {
 		return;
 	}
-	auto const metrics = backendFont->font_face().GetGdiCompatibleGlyphMetrics(
-		backendFont->getSize(), 96.0f, { 1, 0, 0, 1, 0, 0 }, false, { indices.data(), indices.size() }, false);
+	auto const metrics = font->font_face().GetGdiCompatibleGlyphMetrics(
+		font->getSize(), 96.0f, { 1, 0, 0, 1, 0, 0 }, false, { indices.data(), indices.size() }, false);
 	if (metrics.empty()) {
 		return;
 	}
-	canvas_text::CanvasGlyph glyph{ indices[0], metrics[0].AdvanceWidth, 0, 0 };
+	canvas::Text::CanvasGlyph glyph{ indices[0], metrics[0].AdvanceWidth, 0, 0 };
 	auto brush = canvas::Brushes::CanvasSolidColorBrush(session, to_color(color));
-	session.DrawGlyphRun({ x, y }, backendFont->font_face(), backendFont->getSize(), { &glyph, 1 }, false, 0, brush);
+	session.DrawGlyphRun({ x, y }, font->font_face(), font->getSize(), { &glyph, 1 }, false, 0, brush);
 }
 
 void Win2DGraphics::drawText(std::wstring const& text, float x, float y) {
-	auto const* backendFont = dynamic_cast<FontBackend const*>(font);
-	if (!backendFont) {
-		throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
-	}
-	Win2DTextLayout(text, *backendFont).draw(*this, x, y);
+	Win2DTextLayout(text, *font).draw(*this, x, y);
 }
 
 void initialize_latex() {
-	auto& value = context();
-	if (!value.latexInitialized) {
-		tex::LaTeX::init(value.resourceRoot.string());
-		value.latexInitialized = true;
+	auto& ctx = getMicroTeXContext();
+	if (!ctx.latexInitialized) {
+		tex::LaTeX::init(ctx.resourceRoot.string());
+		ctx.latexInitialized = true;
 	}
 }
 
 } // namespace
 
-namespace tex {
+extern "C++" namespace tex {
+
+using winrt::Windows::UI::Text::FontStretch;
+using winrt::Windows::UI::Text::FontStyle;
+using winrt::Windows::UI::Text::FontWeights;
 
 Font* Font::create(std::string const& file, float size) {
 	auto const path = std::filesystem::absolute(std::filesystem::path(winrt::to_hstring(file).c_str()));
 	auto const uri = winrt::Windows::Foundation::Uri(L"file:///" + path.generic_wstring());
-	auto const fonts = canvas_text::CanvasFontSet(uri).Fonts();
+	auto const fonts = canvas::Text::CanvasFontSet(uri).Fonts();
 	if (fonts.Size() == 0) {
 		throw winrt::hresult_invalid_argument(L"无法读取字体文件。");
 	}
 	auto const face = fonts.GetAt(0);
-	return new FontBackend(family_name(face), uri.AbsoluteUri(), PLAIN, size, face);
+	return new FontWrapper(getFontFaceFamilyName(face), uri.AbsoluteUri(), PLAIN, size, face);
 }
 
 sptr<Font> Font::_create(std::string const& name, int style, float size) {
 	auto const family = winrt::to_hstring(name == "Serif" ? "Times New Roman" : name == "SansSerif" ? "Arial"
 																									: name);
-	auto const fontStyle = style & ITALIC ? winrt::Windows::UI::Text::FontStyle::Italic : winrt::Windows::UI::Text::FontStyle::Normal;
-	auto const weight = style & BOLD ? winrt::Windows::UI::Text::FontWeights::Bold() : winrt::Windows::UI::Text::FontWeights::Normal();
-	auto const fonts = canvas_text::CanvasFontSet::GetSystemFontSet().GetMatchingFonts(
-																		 family, weight, winrt::Windows::UI::Text::FontStretch::Normal, fontStyle)
-						   .Fonts();
+	auto const fontStyle = style & ITALIC ? FontStyle::Italic : FontStyle::Normal;
+	auto const weight = style & BOLD ? FontWeights::Bold() : FontWeights::Normal();
+	auto const fonts = canvas::Text::CanvasFontSet::GetSystemFontSet().GetMatchingFonts(family, weight, FontStretch::Normal, fontStyle).Fonts();
 	if (fonts.Size() == 0) {
 		throw winrt::hresult_invalid_argument(L"找不到指定的字体。");
 	}
-	return std::make_shared<FontBackend>(std::wstring(family), L"", style, size, fonts.GetAt(0));
+	return std::make_shared<FontWrapper>(std::wstring(family), L"", style, size, fonts.GetAt(0));
 }
 
-sptr<TextLayout> TextLayout::create(std::wstring const& source, sptr<Font> const& font) {
-	auto const* backendFont = dynamic_cast<FontBackend const*>(font.get());
+sptr<TextLayout> TextLayout::create(std::wstring const& src, sptr<Font> const& font) {
+	auto const* backendFont = dynamic_cast<FontWrapper const*>(font.get());
 	if (!backendFont) {
 		throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
 	}
-	return std::make_shared<Win2DTextLayout>(source, *backendFont);
+	return std::make_shared<Win2DTextLayout>(src, *backendFont);
 }
 
 } // namespace tex
 
 export namespace winrt::markdown::implementation {
 
-winrt::Microsoft::UI::Xaml::Controls::Image TryRenderFormula(char const* formula, unsigned length) {
+winrt::Microsoft::UI::Xaml::Controls::Image TryRenderFormula(char const* formula, unsigned length, float dpi) {
 	try {
-		static auto& runtime = context();
+		static auto& runtime = getMicroTeXContext();
 		initialize_latex();
 		auto const source = std::wstring(winrt::to_hstring(std::string_view(formula, length)));
 		auto const foreground = winrt::Windows::UI::ViewManagement::UISettings().GetColorValue(
@@ -340,7 +341,7 @@ winrt::Microsoft::UI::Xaml::Controls::Image TryRenderFormula(char const* formula
 		auto const height = static_cast<float>(render->getHeight()) + padding * 2;
 		auto device = canvas::CanvasDevice::GetSharedDevice();
 		auto imageSource = canvas::UI::Xaml::CanvasImageSource(
-			device, width, height, 96.0f, canvas::CanvasAlphaMode::Premultiplied);
+			device, width, height, dpi, canvas::CanvasAlphaMode::Premultiplied);
 		auto session = imageSource.CreateDrawingSession({ 0, 0, 0, 0 });
 		Win2DGraphics graphics(session);
 		render->draw(graphics, static_cast<int>(padding), static_cast<int>(padding));

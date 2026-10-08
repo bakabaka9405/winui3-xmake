@@ -1,13 +1,25 @@
-#include "pch.h"
-
-#include "MarkdownRenderer.h"
-
-#include "LatexRenderer.h"
-
+module;
 #include <md4c.h>
-#include <winrt/Microsoft.UI.Xaml.Documents.h>
-#include <winrt/Windows.Data.Html.h>
-#include <winrt/Windows.UI.Text.h>
+
+export module markdown.renderer;
+
+import std;
+import markdown.latex;
+import winrt.Windows.Foundation;
+import winrt.Windows.Foundation.Collections;
+import winrt.Windows.Data.Html;
+import winrt.Windows.UI;
+import winrt.Windows.UI.Text;
+import winrt.Microsoft.UI.Xaml;
+import winrt.Microsoft.UI.Xaml.Controls;
+import winrt.Microsoft.UI.Xaml.Documents;
+import winrt.Microsoft.UI.Xaml.Media;
+
+export namespace winrt::markdown::implementation {
+struct MarkdownRenderer final {
+	static Microsoft::UI::Xaml::Controls::StackPanel Render(winrt::hstring const& content, float dpi);
+};
+}
 
 namespace winrt::markdown::implementation {
 namespace {
@@ -363,7 +375,7 @@ public:
 			auto const* link = static_cast<MD_SPAN_A_DETAIL const*>(detail);
 			try {
 				auto hyperlink = Hyperlink();
-				hyperlink.NavigateUri(wf::Uri(winrt::to_hstring(DecodeAttribute(link->href))));
+				hyperlink.NavigateUri(Windows::Foundation::Uri(winrt::to_hstring(DecodeAttribute(link->href))));
 				current_inline_target().Append(hyperlink);
 				inlineTargets.push_back({ hyperlink.Inlines(), false });
 			}

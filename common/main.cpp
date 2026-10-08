@@ -10,7 +10,7 @@
 
 #include "App.xaml.h"
 
-#if !defined(WINUI3_CLANGD_TEXT_PROJECTION) && __has_include("module.g.cpp")
+#if __has_include("module.g.cpp")
 #include "module.g.cpp"
 #endif
 
