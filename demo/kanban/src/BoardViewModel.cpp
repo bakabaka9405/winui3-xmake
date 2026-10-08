@@ -25,14 +25,14 @@ using namespace winrt::Windows::Data::Json;
 namespace wfc = winrt::Windows::Foundation::Collections;
 
 static std::filesystem::path DataFilePath() {
-	std::wstring buffer(MAX_PATH, L'\0');
-	DWORD length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+	std::string buffer(MAX_PATH, '\0');
+	DWORD length = GetModuleFileNameA(nullptr, buffer.data(), buffer.size());
 	if (length == 0 || length >= buffer.size()) {
 		throw std::runtime_error("无法解析可执行文件路径");
 	}
 
 	buffer.resize(length);
-	return std::filesystem::path(buffer).parent_path() / L"kanban.json";
+	return std::filesystem::path(buffer).parent_path() / "kanban.json";
 }
 
 static winrt::hstring NewGuid() {

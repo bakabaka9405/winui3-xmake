@@ -40,9 +40,9 @@ winrt::Windows::Foundation::IAsyncAction MainWindow::InitializeWebView() {
 	}
 
 	// 3. 使用标准库优雅地获取 exe 同级目录下的 web 文件夹
-	WCHAR exePath[MAX_PATH];
-	GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-	auto webDir = std::filesystem::path(exePath).parent_path() / L"web";
+	char exePath[MAX_PATH];
+	GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+	auto webDir = std::filesystem::path(exePath).parent_path() / "web";
 
 	// 4. 映射虚拟主机名 (推荐做法，避免 file:/// 协议的跨域问题)
 	MyWebView().CoreWebView2().SetVirtualHostNameToFolderMapping(

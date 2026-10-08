@@ -1,7 +1,8 @@
 module;
 
-#include <windows.h>
 #include <unknwn.h>
+#include <windows.h>
+
 
 #undef GetGlyphIndices
 
@@ -35,13 +36,14 @@ struct MicroTeXContext final {
 	bool latexInitialized{};
 
 	MicroTeXContext() {
-		auto executable = std::wstring(MAX_PATH, L'\0');
-		auto length = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
+		auto executable = std::string(MAX_PATH, '\0');
+		auto length = GetModuleFileNameA(nullptr, executable.data(), executable.size());
 		if (length == 0 || length == executable.size()) {
 			throw winrt::hresult_error(E_FAIL, L"无法确定应用程序目录。");
 		}
 
-		resourceRoot = std::filesystem::path(executable).parent_path() / L"res";
+		executable.resize(length);
+		resourceRoot = std::filesystem::path(executable).parent_path() / "res";
 	}
 
 	~MicroTeXContext() {
@@ -288,40 +290,40 @@ void initialize_latex() {
 
 extern "C++" namespace tex {
 
-using winrt::Windows::UI::Text::FontStretch;
-using winrt::Windows::UI::Text::FontStyle;
-using winrt::Windows::UI::Text::FontWeights;
+	using winrt::Windows::UI::Text::FontStretch;
+	using winrt::Windows::UI::Text::FontStyle;
+	using winrt::Windows::UI::Text::FontWeights;
 
-Font* Font::create(std::string const& file, float size) {
-	auto const path = std::filesystem::absolute(std::filesystem::path(winrt::to_hstring(file).c_str()));
-	auto const uri = winrt::Windows::Foundation::Uri(L"file:///" + path.generic_wstring());
-	auto const fonts = canvas::Text::CanvasFontSet(uri).Fonts();
-	if (fonts.Size() == 0) {
-		throw winrt::hresult_invalid_argument(L"无法读取字体文件。");
+	Font* Font::create(std::string const& file, float size) {
+		auto const path = std::filesystem::absolute(file);
+		auto const uri = winrt::Windows::Foundation::Uri(L"file:///" + path.generic_wstring());
+		auto const fonts = canvas::Text::CanvasFontSet(uri).Fonts();
+		if (fonts.Size() == 0) {
+			throw winrt::hresult_invalid_argument(L"无法读取字体文件。");
+		}
+		auto const face = fonts.GetAt(0);
+		return new FontWrapper(getFontFaceFamilyName(face), uri.AbsoluteUri(), PLAIN, size, face);
 	}
-	auto const face = fonts.GetAt(0);
-	return new FontWrapper(getFontFaceFamilyName(face), uri.AbsoluteUri(), PLAIN, size, face);
-}
 
-sptr<Font> Font::_create(std::string const& name, int style, float size) {
-	auto const family = winrt::to_hstring(name == "Serif" ? "Times New Roman" : name == "SansSerif" ? "Arial"
-																									: name);
-	auto const fontStyle = style & ITALIC ? FontStyle::Italic : FontStyle::Normal;
-	auto const weight = style & BOLD ? FontWeights::Bold() : FontWeights::Normal();
-	auto const fonts = canvas::Text::CanvasFontSet::GetSystemFontSet().GetMatchingFonts(family, weight, FontStretch::Normal, fontStyle).Fonts();
-	if (fonts.Size() == 0) {
-		throw winrt::hresult_invalid_argument(L"找不到指定的字体。");
+	sptr<Font> Font::_create(std::string const& name, int style, float size) {
+		auto const family = winrt::to_hstring(name == "Serif" ? "Times New Roman" : name == "SansSerif" ? "Arial"
+																										: name);
+		auto const fontStyle = style & ITALIC ? FontStyle::Italic : FontStyle::Normal;
+		auto const weight = style & BOLD ? FontWeights::Bold() : FontWeights::Normal();
+		auto const fonts = canvas::Text::CanvasFontSet::GetSystemFontSet().GetMatchingFonts(family, weight, FontStretch::Normal, fontStyle).Fonts();
+		if (fonts.Size() == 0) {
+			throw winrt::hresult_invalid_argument(L"找不到指定的字体。");
+		}
+		return std::make_shared<FontWrapper>(std::wstring(family), L"", style, size, fonts.GetAt(0));
 	}
-	return std::make_shared<FontWrapper>(std::wstring(family), L"", style, size, fonts.GetAt(0));
-}
 
-sptr<TextLayout> TextLayout::create(std::wstring const& src, sptr<Font> const& font) {
-	auto const* backendFont = dynamic_cast<FontWrapper const*>(font.get());
-	if (!backendFont) {
-		throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
+	sptr<TextLayout> TextLayout::create(std::wstring const& src, sptr<Font> const& font) {
+		auto const* backendFont = dynamic_cast<FontWrapper const*>(font.get());
+		if (!backendFont) {
+			throw winrt::hresult_invalid_argument(L"字体类型不受支持。");
+		}
+		return std::make_shared<Win2DTextLayout>(src, *backendFont);
 	}
-	return std::make_shared<Win2DTextLayout>(src, *backendFont);
-}
 
 } // namespace tex
 
