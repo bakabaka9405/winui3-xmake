@@ -20,7 +20,7 @@ function on_config(target)
         namespace
     )
 
-    local cpp_content = '#include "pch.h"\n\n'
+    local cpp_content = '#include "prelude.h"\n\n'
         .. '#include "XamlMetaDataProvider.h"\n'
         .. '#include "XamlMetaDataProvider.g.cpp"\n'
 

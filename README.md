@@ -5,7 +5,7 @@
 ## 环境要求
 
 1. Windows 10/11 x64
-2. Visual Studio 或 Build Tools，包含 MSVC C++ 工具链与 Windows SDK；模块目标需要支持 `import std` 的工具链
+2. Visual Studio 2022 或 Build Tools，包含 MSVC C++ 工具链与 Windows SDK
 3. xmake 3.0.9+
 
 ## 构建与运行
@@ -52,7 +52,7 @@ target("demo.<name>")
     add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
-3. 普通目标在源码中通过 `#include "pch.h"` 引用共享前导头。
+3. 普通目标在源码中通过 `#include "pch.h"` 引用共享预编译头。
 
 4. 使用 `xmake -y demo.<name>` 构建。
 
@@ -62,7 +62,7 @@ target("demo.<name>")
 
 ### 模块化 C++/WinRT 投影目标
 
-启用 C++ modules 的目标通过模块导入 WinRT 投影。规则自动生成聚合模块，由普通 `.cpp` 的 `pch.h` 导入；独立模块接口直接导入所需模块。`demo.paint` 和 `demo.markdown` 是当前示例：
+启用 C++ modules 的目标不直接包含文本投影头，而是由规则自动生成聚合模块，并由 `pch.h` 通过宏导入它。`demo.paint` 是当前示例：
 
 ```lua
 target("demo.<name>")
@@ -70,29 +70,10 @@ target("demo.<name>")
     set_values("winui3.namespace", "<namespace>")
     add_rules("demo.common")
     add_includedirs("src")
-    add_files("src/**.cpp", "src/**.cppm", "src/**.idl", "src/**.xaml")
+    add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
 `winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules.appsdk`；该目标通过节点依赖带入 platform 与 WebView2 模块，应用启用 `win2d` 或 `winuiedit` 时再追加对应节点模块目标。规则同时设置 `WINRT_ENABLE_LEGACY_COM` 和 `WINUI3_IMPORT_MODULE` 宏。普通目标与模块目标的手写 `.cpp` 均以 `#include "pch.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `pch.h` 进入模块前导分支并导入 `<namespace>.winrt`。
-
-C++/WinRT 生成的投影接口保留原生 `.ixx` 扩展名；项目聚合模块和手写模块接口使用 `.cppm`。聚合模块通过 `export import std` 提供标准库。独立模块接口在 global module fragment 中包含第三方文本头，在 `export module` 后显式导入 `std` 和所需 WinRT 模块。
-
-`demo.markdown` 的渲染模块：
-
-- `MarkdownRenderer.cppm` 定义 `markdown.renderer`，使用 MD4C 构建 WinUI 3 控件，导出 `MarkdownRenderer::Render`；`MainWindow.xaml.cpp` 通过 `import markdown.renderer` 调用。
-- `LatexRenderer.cppm` 定义 `markdown.latex`，使用 MicroTeX 和 Win2D 绘制公式，导出 `TryRenderFormula`；`markdown.renderer` 导入该模块。MicroTeX 文本头位于 global module fragment，模块实现通过 `import std` 使用标准库。
-
-### 编辑器支持
-
-可使用 [clice](https://github.com/clice-io/clice) 提供 C++ 语言服务和模块解析。模块目标使用原生 `.ixx` 投影与标准库接口，所用 clice 版本需支持该扩展名。
-
-生成实际构建命令的编译数据库，供 C++ LSP 读取：
-
-```powershell
-xmake project -k compile_commands .vscode
-```
-
-输出为 `.vscode/compile_commands.json`。XAML LSP 使用 `xmake xaml-lsp` 导出的 `.xmake/xaml-lsp.json`。
 
 ### 可选规则
 
@@ -142,9 +123,9 @@ add_rules("win2d")
 
 ## 技术栈
 
-- C++（`cxxlatest`）、C++ modules、`import std`、xmake（Windows x64）
+- C++20、xmake（Windows x64）
 - WinUI 3 / Windows App SDK 2.4.0
 - C++/WinRT 3.0、WIL
 - WebView2 1.0（`demo.webview`、`demo.xaml-studio`）
 - Win2D 1.4（`demo.paint`、`demo.markdown`）
-- md4c 2024.02.25、WinUIEdit 0.0.5-prerelease、MicroTeX（固定 commit；Win2D 后端；`demo.markdown`）
+- md4c 2024.02.25、WinUIEdit 0.0.5-prerelease、MicroTeX（固定 commit；Win2D 图形与 DirectWrite 文本后端；`demo.markdown`）

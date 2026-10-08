@@ -118,7 +118,7 @@ SortIncludes: { 'Enabled': true }
 IncludeBlocks: Regroup
 
 IncludeCategories:
-  - Regex: '^["<]pch\.h[">]$'
+  - Regex: '^["<]prelude\.h[">]$'
     Priority: -1
     SortPriority: -1
     CaseSensitive: true
