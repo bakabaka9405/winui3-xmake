@@ -24,9 +24,6 @@ function _shared_modules_target(node_id, deps)
         add_files(path.join(os.projectdir(), "build", ".gens", "shared", node_id,
             "generated", "winrt", "*.ixx"), {always_added = true, public = true})
 
-        -- 不启用 build.c++.modules.reuse.strict：消费目标的 WINUI3_IMPORT_MODULE 定义不同，
-        -- 严格检查会拒绝共享同一份节点 BMI。
-
         set_policy("build.fence", true)
 
         -- target 依赖与 WinMD 图边保持一致。
@@ -52,8 +49,7 @@ function _shared_modules_target(node_id, deps)
                 target:add("includedirs", winmd_context.node_dir(active_id))
             end
 
-            target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8")
-            target:add("defines", "NOMINMAX", "WIN32_LEAN_AND_MEAN", "UNICODE", "_UNICODE")
+            import("winui3.compiler")(target)
             target:add("defines", "WINRT_ENABLE_LEGACY_COM")
 
             import("shared_projection").generate(target, {

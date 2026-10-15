@@ -119,7 +119,7 @@ function before_prepare_files(target, sourcebatch, opt)
         end
         _mark_empty_arrays(pass1_data, json_mod)
         io.writefile(path.join(generated_dir, "pass1.json"), json_mod.encode(pass1_data))
-        os.vrunv(xaml_compiler, {path.join(generated_dir, "pass1.json"), path.join(generated_dir, "pass1_out.json")}, {envs = target:toolchain("msvc"):runenvs()})
+        os.vrunv(xaml_compiler, {path.join(generated_dir, "pass1.json"), path.join(generated_dir, "pass1_out.json")})
 
         local merged_winmd = winmd_context.local_assembly_path(target)
         if not os.isfile(merged_winmd) then
@@ -133,7 +133,7 @@ function before_prepare_files(target, sourcebatch, opt)
         pass1_data.LocalAssembly = {_msbuild_item(merged_winmd)}
         pass1_data.GenXbfPath = genxbf_dir
         io.writefile(path.join(generated_dir, "pass2.json"), json_mod.encode(pass1_data))
-        os.vrunv(xaml_compiler, {path.join(generated_dir, "pass2.json"), path.join(generated_dir, "pass2_out.json")}, {envs = target:toolchain("msvc"):runenvs()})
+        os.vrunv(xaml_compiler, {path.join(generated_dir, "pass2.json"), path.join(generated_dir, "pass2_out.json")})
     end, {
         files      = input_files,
         dependfile = path.join(target:dependir({root = true}), "xaml.d"),

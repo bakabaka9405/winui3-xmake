@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __MINGW32__
+#include "mingw.h"
+#endif
+
 #if defined(WINUI3_IMPORT_MODULE)
 
 #include <cstdio>

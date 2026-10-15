@@ -58,7 +58,7 @@ function before_build(target)
             "/pr", project_dir,
             "/o",
             "/of", pri_output,
-        }, {envs = target:toolchain("msvc"):runenvs()})
+        })
     end, {
         files      = target:sourcebatches()["winui3.xaml"].sourcefiles,
         dependfile = path.join(target:dependir({root = true}), "pri.d"),

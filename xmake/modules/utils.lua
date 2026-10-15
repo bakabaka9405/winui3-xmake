@@ -6,22 +6,6 @@ function vcprint(format, ...)
     end
 end
 
--- 外部工具响应文件写入
-function write_response_file(target, filename, args)
-    local rsp = path.join(target:autogendir({root = true}), filename)
-    local lines = {}
-    for _, arg in ipairs(args) do
-        local value = tostring(arg)
-        if value:find("[%s]") then
-            table.insert(lines, '"' .. value .. '"')
-        else
-            table.insert(lines, value)
-        end
-    end
-    io.writefile(rsp, table.concat(lines, "\r\n"))
-    return rsp
-end
-
 --- 仅在内容变化时写入文件，保持未变文件的 mtime，避免增量构建重复触发。
 ---
 ---@param filepath string 文件路径

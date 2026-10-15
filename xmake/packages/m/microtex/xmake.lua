@@ -12,10 +12,11 @@ package("microtex")
     add_syslinks("d2d1", "dwrite")
     add_defines("BUILD_WIN32", "_HAS_STD_BYTE=0")
 
-    on_install("windows", function (package)
+    on_install("windows", "mingw", function (package)
         io.writefile("CMakeLists.txt", io.readfile("CMakeLists.txt") .. [[
 
 install(TARGETS LaTeX ARCHIVE DESTINATION lib)
+set_target_properties(LaTeXWin32Sample PROPERTIES EXCLUDE_FROM_ALL TRUE)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/" DESTINATION include)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/res/" DESTINATION res)
 ]])

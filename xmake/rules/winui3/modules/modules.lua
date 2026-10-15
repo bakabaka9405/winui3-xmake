@@ -12,5 +12,12 @@ end
 
 function on_config(target)
     local namespace = target:values("winui3.namespace")
-    target:add("defines", "WINRT_ENABLE_LEGACY_COM", "WINUI3_IMPORT_MODULE=" .. namespace .. ".winrt")
+    target:add("defines", "WINRT_ENABLE_LEGACY_COM")
+    for _, sourcefile in ipairs(target:sourcefiles()) do
+        if path.extension(sourcefile) == ".cpp" then
+            target:fileconfig_add(sourcefile, {
+                defines = {"WINUI3_IMPORT_MODULE=" .. namespace .. ".winrt"}
+            })
+        end
+    end
 end

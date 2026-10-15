@@ -27,7 +27,7 @@
 #endif
 
 #ifndef WINUI3_APP_NAMESPACE
-#error WINUI3_APP_NAMESPACE must be defined by the winui3.app xmake rule.
+#error WINUI3_APP_NAMESPACE must be defined for the application entry point.
 #endif
 
 namespace {

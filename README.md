@@ -24,13 +24,35 @@ xmake run demo.hello
 xmake xaml-lsp
 ```
 
+### MSYS2 CLANG64
+
+安装 MSYS2 的 `mingw-w64-clang-x86_64-toolchain`，将 `--mingw` 指向本机的 `clang64` 目录：
+
+```powershell
+xmake f -c -p mingw -a x86_64 -m debug --toolchain="mingw[clang]" --mingw=C:/Tools/msys64/clang64 -y
+xmake clean
+xmake build demo.hello
+xmake build demo.paint
+xmake run demo.hello
+```
+
+C++ 编译使用 Clang 与 libc++，支持 `import std` 和 WinRT 模块。MIDL 使用目标工具链的预处理器，构建环境需要安装 Windows SDK。输出位于 `build/mingw/x86_64/<mode>/<target>/`；`common/app.rc` 将应用 manifest 编译为资源并参与链接，部署阶段复制 `libc++.dll`。
+
+切换回 MSVC：
+
+```powershell
+xmake f -c -p windows -a x64 -m debug --toolchain=msvc -y
+xmake clean
+xmake build demo.hello
+```
+
 ### 构建模式
 
 | 模式 | 说明 |
 | --- | --- |
 | `debug` | 调试构建，保留符号信息 |
 | `release` | 优化构建 |
-| `dist` | 分发构建：最快优化、剥离符号、静态 MSVC 运行库（`MT`） |
+| `dist` | 分发构建：最快优化、剥离符号；MSVC 使用 `MT`，CLANG64 静态链接 libc++ |
 
 ```powershell
 xmake f -m dist
@@ -52,7 +74,7 @@ target("demo.<name>")
     add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
-3. 普通目标在源码中通过 `#include "pch.h"` 引用共享预编译头。
+3. 手写 `.cpp` 通过 `#include "prelude.h"` 引用共享前导头。
 
 4. 使用 `xmake -y demo.<name>` 构建。
 
@@ -62,7 +84,7 @@ target("demo.<name>")
 
 ### 模块化 C++/WinRT 投影目标
 
-启用 C++ modules 的目标不直接包含文本投影头，而是由规则自动生成聚合模块，并由 `pch.h` 通过宏导入它。`demo.paint` 是当前示例：
+启用 C++ modules 的目标由规则自动生成聚合模块，并由 `prelude.h` 通过宏导入它。`demo.paint` 是当前示例：
 
 ```lua
 target("demo.<name>")
@@ -73,7 +95,7 @@ target("demo.<name>")
     add_files("src/**.cpp", "src/**.idl", "src/**.xaml")
 ```
 
-`winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules.appsdk`；该目标通过节点依赖带入 platform 与 WebView2 模块，应用启用 `win2d` 或 `winuiedit` 时再追加对应节点模块目标。规则同时设置 `WINRT_ENABLE_LEGACY_COM` 和 `WINUI3_IMPORT_MODULE` 宏。普通目标与模块目标的手写 `.cpp` 均以 `#include "pch.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `pch.h` 进入模块前导分支并导入 `<namespace>.winrt`。
+`winui3.modules` 规则从 `winui3.namespace` 自动派生聚合模块名 `<namespace>.winrt`，启用 C++ modules，依赖 `winui3.shared_projection.modules.appsdk`；该目标通过节点依赖带入 platform 与 WebView2 模块，应用启用 `win2d` 或 `winuiedit` 时再追加对应节点模块目标。规则在目标级设置 `WINRT_ENABLE_LEGACY_COM`，在应用 `.cpp` 文件级设置 `WINUI3_IMPORT_MODULE`；`demo.common` 仅为 `common/main.cpp` 设置 `WINUI3_APP_NAMESPACE`。普通目标与模块目标的手写 `.cpp` 均以 `#include "prelude.h"` 开头；模块目标由 `WINUI3_IMPORT_MODULE` 宏使 `prelude.h` 进入模块前导分支并导入 `<namespace>.winrt`。
 
 ### 可选规则
 
@@ -103,9 +125,9 @@ add_rules("win2d")
 
 1. 输出目录包含 `.exe`、`resources.pri` 和 `Microsoft.WindowsAppRuntime.Bootstrap.dll`。
 2. 目标机器已安装匹配的 Windows App Runtime；若未安装，Bootstrap 会显示安装界面。
-3. 目标机器具备匹配的 MSVC 运行库，或使用 `dist` 模式生成静态链接产物。
+3. MSVC 构建需要匹配的 MSVC 运行库，或使用 `dist` 模式；CLANG64 的动态 libc++ 由构建规则部署到输出目录。
 
-> 不要分发 Debug 构建产物——Debug 模式依赖不可再分发的调试版 MSVC 运行库。
+MSVC 的 Debug 模式依赖不可再分发的调试版 MSVC 运行库。
 
 ## 示例
 

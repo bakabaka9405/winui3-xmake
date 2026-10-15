@@ -45,11 +45,9 @@ function on_config(target)
         target:add("includedirs", node_dir)
     end
 
-    target:add("cxflags", "/EHsc", "/bigobj", "/await:strict", "/utf-8")
-
-    target:add("defines", "NOMINMAX", "WIN32_LEAN_AND_MEAN", "UNICODE", "_UNICODE")
+    import("winui3.compiler")(target)
     target:add("defines", "DISABLE_XAML_GENERATED_MAIN")
-    target:add("defines", "WINUI3_APP_NAMESPACE=" .. namespace)
+    target:add("defines", "_VSDESIGNER_DONT_LOAD_AS_DLL")
 
     local foundation_root = packages.package_root("Microsoft.WindowsAppSDK.Foundation")
     target:add("linkdirs", path.join(foundation_root, "lib", "native", "x64"))
@@ -58,6 +56,11 @@ function on_config(target)
     target:add("links", "windowsapp")
     target:add("links", "user32")
 
-    target:add("ldflags", "/SUBSYSTEM:WINDOWS")
+    if target:toolchain("mingw") then
+        target:add("ldflags", "-municode", "-mwindows", {force = true})
+        target:add("links", "kernel32")
+    else
+        target:add("ldflags", "/SUBSYSTEM:WINDOWS")
+    end
 end
 

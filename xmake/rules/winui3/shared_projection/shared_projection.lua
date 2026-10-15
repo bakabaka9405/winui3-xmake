@@ -78,7 +78,7 @@ local function _generate_node(target, graph_ctx, node_id, opt)
         end
         table.insert(args, "-out")
         table.insert(args, out_dir)
-        os.vrunv(tools.cppwinrt, args)
+        os.vrunv(tools.cppwinrt, winos.cmdargv(args))
 
         -- Clang 的模块导入方需要可见的原生声明。
         if node_id == "platform" then
@@ -89,11 +89,22 @@ local function _generate_node(target, graph_ctx, node_id, opt)
             io.writefile(base_file, base_content)
 
             if opt.modules then
+                local base_module_file = path.join(winrt_dir, "winrt_base.ixx")
+                local base_module_content = io.readfile(base_module_file):gsub("export module winrt_base;",
+                    '#ifdef __MINGW32__\n#include "mingw.h"\n#endif\n\nexport module winrt_base;', 1)
+                io.writefile(base_module_file, base_module_content)
+
                 local foundation_file = path.join(winrt_dir, "winrt.Windows.Foundation.ixx")
                 local foundation_content, foundation_count = io.readfile(foundation_file):gsub("module;",
                     "module;\n#include <guiddef.h>", 1)
                 assert(foundation_count == 1, "C++/WinRT Foundation global module fragment not found")
                 io.writefile(foundation_file, foundation_content)
+
+                -- MinGW 的 Numerics 实现包含 STL 头，其声明须归属 global module。
+                local numerics_file = path.join(winrt_dir, "winrt_numerics.ixx")
+                local numerics_content = io.readfile(numerics_file):gsub("module;",
+                    "module;\n#ifdef __MINGW32__\n#include <algorithm>\n#include <cmath>\n#endif", 1)
+                io.writefile(numerics_file, numerics_content)
             end
         end
 

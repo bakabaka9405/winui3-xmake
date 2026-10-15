@@ -60,7 +60,7 @@ struct InlineTarget final {
 std::string DecodeFragment(MD_TEXTTYPE type, std::string_view text) {
 	if (type == MD_TEXT_NULLCHAR) {
 		std::string decoded;
-		for (size_t index = 0; index < text.size(); ++index) {
+		for (std::size_t index = 0; index < text.size(); ++index) {
 			decoded += "\xEF\xBF\xBD";
 		}
 		return decoded;
@@ -82,7 +82,7 @@ std::string DecodeAttribute(MD_ATTRIBUTE const& attr) {
 	}
 
 	std::string decoded;
-	for (size_t index = 0; attr.substr_offsets[index] < attr.size; ++index) {
+	for (std::size_t index = 0; attr.substr_offsets[index] < attr.size; ++index) {
 		auto const start = attr.substr_offsets[index];
 		auto const end = attr.substr_offsets[index + 1];
 		if (start > end || end > attr.size) {

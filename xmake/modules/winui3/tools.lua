@@ -4,7 +4,7 @@
 --   - cppwinrt.exe   — C++/WinRT 投影编译器
 --   - makepri.exe    — 资源索引工具
 --   - XamlCompiler.exe — XAML 编译器（可被用户覆盖）
--- 所有工具默认均从 NuGet 包解析，不依赖 MSVC 工具链安装。
+-- 工具路径默认从 NuGet 包解析，MIDL 预处理器使用目标编译器。
 
 local packages = import("winui3.packages")
 local config   = import("core.project.config")

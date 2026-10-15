@@ -15,6 +15,8 @@ rule("demo.common")
         target:set("default", false)
         local common_dir = path.join(os.projectdir(), "common")
         target:add("includedirs", common_dir)
-        target:add("files", path.join(common_dir, "**.cpp"))
-        target:add("files", path.join(common_dir, "**.manifest"))
+        target:add("files", path.join(common_dir, "main.cpp"), {
+            defines = {"WINUI3_APP_NAMESPACE=" .. target:values("winui3.namespace")}
+        })
+        target:add("files", path.join(common_dir, "**.rc"))
     end)

@@ -46,7 +46,7 @@ rule("winuiedit")
     end)
 
     after_build(function (target)
-        local arch = target:arch()
+        local arch = target:is_arch("x86_64") and "x64" or target:arch()
         if arch ~= "x64" and arch ~= "x86" and arch ~= "arm64" then
             raise("winuiedit: 不支持的目标架构：" .. tostring(arch)
                 .. "；仅支持 x64、x86、arm64。")

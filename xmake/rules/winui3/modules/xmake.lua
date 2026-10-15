@@ -1,7 +1,7 @@
 -- winui3.modules 规则：为应用目标启用 C++ modules 模式
 --
 -- 设置 build.c++.modules 策略，根据应用直接激活的 WinMD 根节点挂载共享模块目标，
--- 并在 on_config 中设置 WINRT_ENABLE_LEGACY_COM 和 WINUI3_IMPORT_MODULE 宏。
+-- 在 on_config 中设置 WINRT_ENABLE_LEGACY_COM，并为应用 .cpp 设置 WINUI3_IMPORT_MODULE。
 --
 -- 使用方式：
 --   add_rules("winui3.app", "winui3.modules")

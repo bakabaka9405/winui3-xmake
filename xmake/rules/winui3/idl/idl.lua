@@ -97,6 +97,7 @@ function before_prepare_files(target, sourcebatch, opt)
     local aggregate_module_file = is_modules and path.join(generated_dir, namespace .. ".winrt.cppm") or nil
 
     local dependfile = path.join(target:dependir({root = true}), "idl.d")
+    local compiler = target:compiler("cxx")
 
     depend.on_changed(function()
         local tools = import("winui3.tools")()
@@ -138,20 +139,23 @@ function before_prepare_files(target, sourcebatch, opt)
                 "/I", sdk_include_winrt,
                 "/I", path.directory(idl_path),
             }
+            local prefixargs = {idl_path, "/cpp_cmd", path.filename(compiler:program())}
+            if target:has_tool("cxx", "clang") then
+                -- cpp_opt 覆盖预处理参数，需显式传递 SDK 与当前 IDL 的头文件目录。
+                table.join2(prefixargs, {"/cpp_opt", os.args({
+                    "-E", "-x", "c",
+                    "-I", sdk_include_um,
+                    "-I", sdk_include_shared,
+                    "-I", sdk_include_winrt,
+                    "-I", path.directory(idl_path),
+                })})
+            end
             for _, ref in ipairs(ref_winmds) do
                 table.insert(midl_args, "/reference")
                 table.insert(midl_args, path.absolute(ref))
             end
 
-            -- 引用 WinMD 较多时使用响应文件，避免命令行长度限制截断参数。
-            local all_args = table.join({idl_path}, midl_args)
-            if #all_args > 80 then
-                local rsp = utils.write_response_file(
-                    target, path.basename(idl_path) .. ".rsp", midl_args)
-                os.vrunv(midl_exe, {idl_path, "@" .. rsp}, {envs = target:toolchain("msvc"):runenvs()})
-            else
-                os.vrunv(midl_exe, all_args, {envs = target:toolchain("msvc"):runenvs()})
-            end
+            os.vrunv(midl_exe, table.join(prefixargs, winos.cmdargv(midl_args)), {envs = compiler:runenvs()})
         end
 
         local unmerged_winmds = os.files(path.join(unmerged_dir, "**.winmd"))
@@ -174,13 +178,7 @@ function before_prepare_files(target, sourcebatch, opt)
         table.insert(mdmerge_args, "-partial")
         table.insert(mdmerge_args, "-n:1")
 
-        -- mdmerge 与 cppwinrt 均可能携带大量引用路径，沿用响应文件策略。
-        if #mdmerge_args > 80 then
-            local rsp = utils.write_response_file(target, "_mdmerge.rsp", mdmerge_args)
-            os.vrunv(mdmerge_exe, {"@" .. rsp}, {envs = target:toolchain("msvc"):runenvs()})
-        else
-            os.vrunv(mdmerge_exe, mdmerge_args, {envs = target:toolchain("msvc"):runenvs()})
-        end
+        os.vrunv(mdmerge_exe, winos.cmdargv(mdmerge_args))
 
         if not os.isfile(merged_winmd) then
             raise("winui3.idl: merged WinMD not found: " .. merged_winmd)
@@ -204,12 +202,7 @@ function before_prepare_files(target, sourcebatch, opt)
             table.insert(cppwinrt_args, ref)
         end
 
-        if #cppwinrt_args > 80 then
-            local rsp = utils.write_response_file(target, "_cppwinrt.rsp", cppwinrt_args)
-            os.vrunv(cppwinrt_exe, {"@" .. rsp}, {envs = target:toolchain("msvc"):runenvs()})
-        else
-            os.vrunv(cppwinrt_exe, cppwinrt_args, {envs = target:toolchain("msvc"):runenvs()})
-        end
+        os.vrunv(cppwinrt_exe, winos.cmdargv(cppwinrt_args))
 
         if import_name then
             _write_aggregate_module(aggregate_module_file, import_name, namespace, shared)
@@ -217,6 +210,7 @@ function before_prepare_files(target, sourcebatch, opt)
 
     end, {
         files      = idl_files,
+        values     = {compiler:program()},
         dependfile = dependfile,
         changed    = option.get("rebuild")
     })
